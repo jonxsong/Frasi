@@ -38,7 +38,7 @@ def detect_notes(
     )
     rms = librosa.feature.rms(y=harmonic, frame_length=2048, hop_length=hop_length)[0]
     notes: list[PerformanceNote] = []
-    for start_frame, end_frame in zip(boundaries, boundaries[1:]):
+    for start_frame, end_frame in zip(boundaries, boundaries[1:], strict=False):
         if end_frame - start_frame < 2:
             continue
         segment_f0 = f0[start_frame:end_frame]

@@ -8,7 +8,8 @@ select = ["E", "F", "I", "B", "UP", "SIM"]
 
 [tool.pytest.ini_options]
 addopts = "-ra"
-testpaths = ["services/api/tests", "ml/tests"]
+asyncio_mode = "auto"
+testpaths = ["services/api/tests", "services/worker/tests", "ml/tests"]
 
 [tool.mypy]
 python_version = "3.12"

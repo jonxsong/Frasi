@@ -1,6 +1,9 @@
 import asyncio
 import shutil
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from pathlib import Path
+from tempfile import NamedTemporaryFile
 from typing import Protocol
 
 import boto3
@@ -12,6 +15,14 @@ class AssetStorage(Protocol):
     async def put(self, source: Path, key: str, media_type: str) -> None: ...
 
     async def delete(self, key: str) -> None: ...
+
+    def materialize(self, key: str) -> "AsyncAssetContext": ...
+
+
+class AsyncAssetContext(Protocol):
+    async def __aenter__(self) -> Path: ...
+
+    async def __aexit__(self, exc_type: object, exc: object, traceback: object) -> None: ...
 
 
 class FilesystemStorage:
@@ -34,6 +45,13 @@ class FilesystemStorage:
         target = self._path(key)
         if target.exists():
             await asyncio.to_thread(target.unlink)
+
+    @asynccontextmanager
+    async def materialize(self, key: str) -> AsyncIterator[Path]:
+        path = self._path(key)
+        if not path.is_file():
+            raise FileNotFoundError("Audio asset is missing")
+        yield path
 
 
 class S3Storage:
@@ -58,6 +76,16 @@ class S3Storage:
 
     async def delete(self, key: str) -> None:
         await asyncio.to_thread(self.client.delete_object, Bucket=self.bucket, Key=key)
+
+    @asynccontextmanager
+    async def materialize(self, key: str) -> AsyncIterator[Path]:
+        with NamedTemporaryFile(suffix=Path(key).suffix, delete=False) as temporary:
+            path = Path(temporary.name)
+        try:
+            await asyncio.to_thread(self.client.download_file, self.bucket, key, str(path))
+            yield path
+        finally:
+            path.unlink(missing_ok=True)
 
 
 def get_storage(settings: Settings) -> AssetStorage:

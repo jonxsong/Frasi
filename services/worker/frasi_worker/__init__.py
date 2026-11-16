@@ -1,0 +1,1 @@
+"""Frasi Celery worker package."""
