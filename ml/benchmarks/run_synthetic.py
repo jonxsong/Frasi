@@ -115,8 +115,7 @@ def evaluate() -> dict[str, object]:
     return {
         "suite": "frasi-synthetic-monophonic-v1",
         "scope": (
-            "generated isolated sine tones with percussive attacks; "
-            "not real-recording accuracy"
+            "generated isolated sine tones with percussive attacks; not real-recording accuracy"
         ),
         "sample_rate": SAMPLE_RATE,
         "pitch_tolerance_semitones": PITCH_TOLERANCE_SEMITONES,
