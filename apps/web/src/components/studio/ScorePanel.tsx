@@ -1,7 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Music2, PencilLine } from "lucide-react";
+import {
+  Music2,
+  PencilLine,
+  ScanLine,
+  ZoomIn,
+  ZoomOut,
+} from "lucide-react";
 import { instruments } from "@frasi/music-core";
 import { transposeMusicXml } from "@/lib/musicXml";
 import { useStudioStore } from "@/store/studio";
@@ -52,12 +58,21 @@ const practiceKeys = [
   "B",
 ];
 
+const MIN_SCORE_ZOOM = 0.4;
+const MAX_SCORE_ZOOM = 1.6;
+const MIN_SCORE_HEIGHT = 300;
+const MAX_SCORE_HEIGHT = 900;
+
 interface ScorePanelProps {
   onNotify: (message: string) => void;
 }
 
 export function ScorePanel({ onNotify }: ScorePanelProps) {
   const scoreRef = useRef<HTMLDivElement>(null);
+  const scoreCardRef = useRef<HTMLDivElement>(null);
+  const resizeRef = useRef<{ startY: number; startHeight: number } | null>(
+    null,
+  );
   const musicXml = useStudioStore((state) => state.musicXml);
   const pitchView = useStudioStore((state) => state.pitchView);
   const transposeSemitones = useStudioStore(
@@ -82,6 +97,38 @@ export function ScorePanel({ onNotify }: ScorePanelProps) {
   const [mastered, setMastered] = useState<Set<string>>(new Set());
   const [correctionOpen, setCorrectionOpen] = useState(false);
   const [practiceStartedAt] = useState(() => Date.now());
+  const [scoreZoom, setScoreZoom] = useState(1);
+  const [scoreHeight, setScoreHeight] = useState<number | null>(null);
+
+  useEffect(() => {
+    const resize = (event: PointerEvent) => {
+      const state = resizeRef.current;
+      if (!state) return;
+      setScoreHeight(
+        Math.max(
+          MIN_SCORE_HEIGHT,
+          Math.min(
+            MAX_SCORE_HEIGHT,
+            state.startHeight + event.clientY - state.startY,
+          ),
+        ),
+      );
+    };
+    const stopResize = () => {
+      if (!resizeRef.current) return;
+      resizeRef.current = null;
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+    window.addEventListener("pointermove", resize);
+    window.addEventListener("pointerup", stopResize);
+    return () => {
+      window.removeEventListener("pointermove", resize);
+      window.removeEventListener("pointerup", stopResize);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -176,6 +223,27 @@ export function ScorePanel({ onNotify }: ScorePanelProps) {
     );
   }
 
+  function updateScoreZoom(next: number) {
+    setScoreZoom(
+      Math.max(MIN_SCORE_ZOOM, Math.min(MAX_SCORE_ZOOM, next)),
+    );
+  }
+
+  function fitScoreToView() {
+    const availableWidth = (scoreCardRef.current?.clientWidth ?? 978) - 48;
+    updateScoreZoom(Math.min(1, availableWidth / 930));
+  }
+
+  function handleResizeKey(event: React.KeyboardEvent<HTMLButtonElement>) {
+    if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
+    event.preventDefault();
+    const current = scoreCardRef.current?.getBoundingClientRect().height ?? 435;
+    const delta = event.key === "ArrowUp" ? -32 : 32;
+    setScoreHeight(
+      Math.max(MIN_SCORE_HEIGHT, Math.min(MAX_SCORE_HEIGHT, current + delta)),
+    );
+  }
+
   return (
     <section className={styles.scoreSection} aria-label="Interactive score">
       <div className={styles.scoreTabs} role="tablist" aria-label="Score views">
@@ -196,10 +264,16 @@ export function ScorePanel({ onNotify }: ScorePanelProps) {
       </div>
 
       {scoreTab === "score" && (
-        <div className={styles.notationCard}>
+        <div
+          ref={scoreCardRef}
+          className={styles.notationCard}
+          style={scoreHeight ? { height: `${scoreHeight}px` } : undefined}
+        >
           <div className={styles.notationMeta}>
-            <span>♩ = 140</span>
-            <span>Swing</span>
+            <div className={styles.notationContext}>
+              <span>♩ = 140</span>
+              <span>Swing</span>
+            </div>
             {isDemo && (
               <small>
                 Clearly labeled demo score · click a measure to seek
@@ -214,23 +288,103 @@ export function ScorePanel({ onNotify }: ScorePanelProps) {
                 <PencilLine size={13} /> Correct score
               </button>
             )}
-          </div>
-          {renderError ? (
-            <div className={styles.scoreError}>
-              <Music2 size={24} />
-              <strong>Score rendering needs attention</strong>
-              <span>{renderError}</span>
-            </div>
-          ) : svg ? (
             <div
-              ref={scoreRef}
-              className={styles.scoreSvg}
-              onClick={seekFromScore}
-              dangerouslySetInnerHTML={{ __html: svg }}
-            />
-          ) : (
-            <div className={styles.scoreLoading}>Engraving notation…</div>
-          )}
+              className={styles.scoreViewControls}
+              role="group"
+              aria-label="Score size controls"
+            >
+              <button
+                onClick={() => updateScoreZoom(scoreZoom - 0.1)}
+                disabled={scoreZoom <= MIN_SCORE_ZOOM}
+                aria-label="Zoom out score"
+                type="button"
+              >
+                <ZoomOut size={15} />
+              </button>
+              <output aria-label="Score zoom">
+                {Math.round(scoreZoom * 100)}%
+              </output>
+              <button
+                onClick={() => updateScoreZoom(scoreZoom + 0.1)}
+                disabled={scoreZoom >= MAX_SCORE_ZOOM}
+                aria-label="Zoom in score"
+                type="button"
+              >
+                <ZoomIn size={15} />
+              </button>
+              <button
+                onClick={fitScoreToView}
+                aria-label="Fit score to view"
+                title="Fit score to view"
+                type="button"
+              >
+                <ScanLine size={15} />
+              </button>
+            </div>
+          </div>
+          <div className={styles.scoreViewport}>
+            {renderError ? (
+              <div className={styles.scoreError}>
+                <Music2 size={24} />
+                <strong>Score rendering needs attention</strong>
+                <span>{renderError}</span>
+              </div>
+            ) : svg ? (
+              <div
+                ref={scoreRef}
+                className={styles.scoreSvg}
+                style={{
+                  width: `${scoreZoom * 100}%`,
+                  minWidth: `${Math.round(930 * scoreZoom)}px`,
+                }}
+                onClick={seekFromScore}
+                dangerouslySetInnerHTML={{ __html: svg }}
+              />
+            ) : (
+              <div className={styles.scoreLoading}>Engraving notation…</div>
+            )}
+          </div>
+          <button
+            className={styles.scoreResizeHandle}
+            onPointerDown={(event) => {
+              event.preventDefault();
+              resizeRef.current = {
+                startY: event.clientY,
+                startHeight:
+                  scoreCardRef.current?.getBoundingClientRect().height ?? 435,
+              };
+              event.currentTarget.setPointerCapture(event.pointerId);
+              document.body.style.cursor = "ns-resize";
+              document.body.style.userSelect = "none";
+            }}
+            onPointerMove={(event) => {
+              const state = resizeRef.current;
+              if (!state || !event.currentTarget.hasPointerCapture(event.pointerId))
+                return;
+              setScoreHeight(
+                Math.max(
+                  MIN_SCORE_HEIGHT,
+                  Math.min(
+                    MAX_SCORE_HEIGHT,
+                    state.startHeight + event.clientY - state.startY,
+                  ),
+                ),
+              );
+            }}
+            onDoubleClick={() => setScoreHeight(null)}
+            onKeyDown={handleResizeKey}
+            role="separator"
+            aria-label="Resize score panel"
+            aria-orientation="horizontal"
+            aria-valuemin={MIN_SCORE_HEIGHT}
+            aria-valuemax={MAX_SCORE_HEIGHT}
+            aria-valuenow={scoreHeight ?? 435}
+            title="Drag to resize · double-click to reset"
+            type="button"
+          >
+            <span className={styles.scoreResizeGrip} />
+            <span>Drag to resize</span>
+          </button>
         </div>
       )}
 

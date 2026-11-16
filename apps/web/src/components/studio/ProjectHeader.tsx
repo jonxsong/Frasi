@@ -31,11 +31,6 @@ export function ProjectHeader({
       className={styles.projectHeader}
       aria-label="Current transcription"
     >
-      <div className={styles.albumArt} aria-hidden="true">
-        <span>FRASI</span>
-        <i />
-        <strong>01</strong>
-      </div>
       <div className={styles.trackCopy}>
         <div className={styles.trackTitleRow}>
           <h1>

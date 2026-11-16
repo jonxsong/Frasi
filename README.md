@@ -57,6 +57,8 @@ Compose.
   confidence and caveats.
 - Jazz-standard chord engraving (`△`, `−`, `ø`, `°`) with semantic MusicXML harmony kinds,
   slash-bass transposition, and ledger lines above and below the staff.
+- Minimal responsive product UI with 40–160% score zoom, one-click fit-to-view, and an
+  accessible drag/keyboard-resizable notation workspace.
 - Practice and vocabulary ledgers plus real MusicXML, standard MIDI, and printable PDF exports.
 - Unit, API, DSP, responsive browser, strict type, container, migration, and full-stack smoke
   gates in CI.

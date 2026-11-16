@@ -1724,3 +1724,654 @@
     display: none;
   }
 }
+
+/* Minimal product UI — flat, compact, and centered on the score. */
+.studio {
+  overflow-x: hidden;
+  background: #0b0d10;
+}
+
+.studio::before {
+  display: none;
+}
+
+.header {
+  height: 58px;
+  grid-template-columns: minmax(180px, 1fr) auto minmax(180px, 1fr);
+  padding: 0 28px;
+  border-bottom-color: var(--line);
+  background: rgba(11, 13, 16, 0.9);
+  backdrop-filter: blur(16px);
+}
+
+.brand {
+  gap: 8px;
+}
+
+.brandMark {
+  width: 30px;
+  height: 30px;
+  filter: none;
+}
+
+.wordmark {
+  font: 720 20px/1 var(--sans);
+  letter-spacing: -0.03em;
+}
+
+.tagline {
+  display: none;
+}
+
+.nav {
+  align-self: center;
+  height: 38px;
+  gap: 2px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #111419;
+}
+
+.navItem,
+.navActive {
+  min-width: 76px;
+  padding: 0 12px;
+  border-radius: 7px;
+  color: #8d949f;
+  font-size: 12px;
+  font-weight: 560;
+}
+
+.navItem:hover {
+  color: #eef0f2;
+}
+
+.navActive {
+  background: #242830;
+  color: #fff;
+}
+
+.navActive::after {
+  display: none;
+}
+
+.profileButton,
+.profileButtonActive {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: #15181e;
+}
+
+.profileButtonActive {
+  border-color: rgba(124, 92, 255, 0.65);
+  background: #6246d9;
+  color: white;
+}
+
+.workspace {
+  max-width: 1600px;
+  padding: 22px 32px 92px;
+}
+
+.projectHeader {
+  min-height: 74px;
+  grid-template-columns: minmax(280px, 1fr) auto;
+  gap: 24px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.trackCopy h1 {
+  color: #f3f4f6;
+  font: 650 23px/1.2 var(--sans);
+  letter-spacing: -0.025em;
+}
+
+.trackCopy p {
+  gap: 7px;
+  margin-top: 5px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.demoBadge,
+.jobBadge {
+  padding: 3px 6px;
+  border-color: var(--line-strong);
+  color: #aeb4be;
+  font-size: 8px;
+}
+
+.projectActions {
+  gap: 7px;
+}
+
+.actionButton,
+.actionButtonWide,
+.actionSquare {
+  height: 36px;
+  gap: 7px;
+  padding: 0 11px;
+  border-color: var(--line-strong);
+  border-radius: 8px;
+  background: #14171c;
+  color: #dfe2e7;
+  font-size: 12px;
+}
+
+.actionButtonWide {
+  min-width: 154px;
+  border-color: transparent;
+  background: #7c5cff;
+  color: #fff;
+  font-weight: 650;
+}
+
+.actionSquare {
+  width: 36px;
+}
+
+.actionButton:hover,
+.actionButtonWide:hover,
+.actionSquare:hover {
+  border-color: rgba(168, 154, 255, 0.52);
+  background: #242830;
+}
+
+.actionButtonWide:hover {
+  background: #6f50ec;
+}
+
+.exportMenu {
+  border-radius: 9px;
+  background: #171a20;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.36);
+}
+
+.waveformRow {
+  min-height: 72px;
+  grid-template-columns: 42px 82px minmax(220px, 1fr) auto;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: #111419;
+}
+
+.wavePlay {
+  width: 38px;
+  height: 38px;
+  border: 0;
+  border-radius: 9px;
+  background: #7c5cff;
+  box-shadow: none;
+}
+
+.waveTrack {
+  height: 50px;
+}
+
+.waveActions {
+  gap: 6px;
+}
+
+.waveActions button {
+  height: 32px;
+  min-width: 38px;
+  padding: 0 9px;
+  border-radius: 7px;
+  background: #171a20;
+}
+
+.waveSelection {
+  border-color: #7c5cff;
+  background: rgba(124, 92, 255, 0.2);
+  box-shadow: none;
+}
+
+.scoreSection {
+  margin-top: 12px;
+}
+
+.studioGrid {
+  grid-template-columns: minmax(0, 1fr) 264px;
+  gap: 16px;
+}
+
+.scoreTabs {
+  height: 42px;
+  gap: 3px;
+  align-items: center;
+  border-bottom-color: var(--line);
+}
+
+.scoreTab,
+.scoreTabActive {
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 7px;
+  color: #8f96a1;
+  font-size: 12px;
+  font-weight: 560;
+}
+
+.scoreTab:hover {
+  color: #e5e7eb;
+}
+
+.scoreTabActive {
+  background: #1a1e25;
+  color: #fff;
+}
+
+.scoreTabActive::after {
+  display: none;
+}
+
+.notationCard {
+  height: min(52vh, 480px);
+  min-height: 300px;
+  max-height: 900px;
+  display: flex;
+  flex-direction: column;
+  margin-top: 12px;
+  overflow: hidden;
+  border-color: #d9d9d5;
+  border-radius: 11px;
+  background: #f8f7f3;
+  box-shadow: none;
+}
+
+.notationMeta {
+  position: static;
+  min-height: 48px;
+  flex: 0 0 auto;
+  gap: 10px;
+  padding: 8px 10px 8px 14px;
+  border-bottom: 1px solid #deded9;
+  background: rgba(255, 255, 255, 0.82);
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.notationContext {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.notationContext span + span::before {
+  content: "·";
+  margin-right: 8px;
+  color: #9a9a94;
+}
+
+.notationMeta > small {
+  margin-left: 0;
+  color: #777a7f;
+  font: 500 9px/1.2 var(--sans);
+  letter-spacing: 0.04em;
+}
+
+.correctScoreButton {
+  margin-left: 0;
+  border-color: #d7d2e8;
+  background: #f3f0fb;
+  color: #5f48b0;
+}
+
+.scoreViewControls {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: auto;
+  padding: 3px;
+  border: 1px solid #deded9;
+  border-radius: 8px;
+  background: #f3f3ef;
+}
+
+.scoreViewControls button {
+  width: 28px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: #555960;
+  cursor: pointer;
+}
+
+.scoreViewControls button:hover {
+  background: #fff;
+  color: #17181b;
+}
+
+.scoreViewControls button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.scoreViewControls output {
+  min-width: 42px;
+  color: #50535a;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.scoreViewport {
+  min-height: 0;
+  flex: 1;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.scoreSvg {
+  margin-inline: auto;
+  padding: 8px 18px 18px;
+  transition:
+    width 160ms ease,
+    min-width 160ms ease;
+}
+
+.scoreResizeHandle {
+  position: relative;
+  width: 100%;
+  height: 22px;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0;
+  border: 0;
+  border-top: 1px solid #deded9;
+  background: #f1f1ed;
+  color: #777a80;
+  font-size: 9px;
+  cursor: ns-resize;
+}
+
+.scoreResizeHandle:hover,
+.scoreResizeHandle:focus-visible {
+  background: #e9e7f2;
+  color: #5f48b0;
+}
+
+.scoreResizeGrip {
+  width: 26px;
+  height: 4px;
+  border-radius: 99px;
+  background: #b7b8b4;
+}
+
+.scoreResizeHandle:hover .scoreResizeGrip {
+  background: #7c5cff;
+}
+
+.scoreLoading,
+.scoreError {
+  min-height: 100%;
+}
+
+.controlSidebar {
+  margin-top: 54px;
+  padding: 15px;
+  border-radius: 11px;
+  background: #111419;
+  box-shadow: none;
+}
+
+.controlSidebar h2 {
+  font-size: 13px;
+}
+
+.segmentedControl {
+  border-color: var(--line);
+  border-radius: 8px;
+  background: #0c0e12;
+}
+
+.segmentedControl button {
+  min-height: 32px;
+  border-radius: 6px;
+  font-size: 10px;
+}
+
+.segmentedControl .segmentActive {
+  background: #2a2e37;
+  color: #fff;
+}
+
+.controlSection select {
+  height: 37px;
+  border-radius: 8px;
+  background: #171a20;
+}
+
+.switchOn {
+  background: #7c5cff;
+}
+
+.allKeysButton {
+  min-height: 40px;
+  border-color: var(--line-strong);
+  border-radius: 8px;
+  background: #171a20;
+  color: #d9dce2;
+}
+
+.scoreFooter {
+  height: 44px;
+  gap: 16px;
+  margin-top: 9px;
+  padding: 0 9px 0 14px;
+  border-radius: 9px;
+  background: #111419;
+  font-size: 10px;
+}
+
+.scoreFooter button {
+  width: 30px;
+  height: 29px;
+  border-radius: 6px;
+  background: #171a20;
+}
+
+.insightGrid article,
+.practiceGrid {
+  border-radius: 11px;
+  background: #111419;
+  box-shadow: none;
+}
+
+.practiceIntro h2,
+.insightGrid h3 {
+  font-family: var(--sans);
+  letter-spacing: -0.03em;
+}
+
+.transport {
+  height: 64px;
+  grid-template-columns: 34px 42px 34px 92px minmax(180px, 1fr) 34px 100px 34px;
+  padding: 0 24px;
+  border-top-color: var(--line);
+  background: rgba(11, 13, 16, 0.96);
+  box-shadow: none;
+}
+
+.transport button {
+  width: 34px;
+  height: 34px;
+}
+
+.transport .transportPlay {
+  width: 42px;
+  height: 42px;
+  border-radius: 9px;
+  background: #7c5cff;
+}
+
+.dialog {
+  padding: 28px;
+  border-radius: 14px;
+  background: #15181e;
+  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.48);
+}
+
+.dialog h2 {
+  font: 650 26px/1.2 var(--sans);
+  letter-spacing: -0.025em;
+}
+
+.dropZone,
+.linkForm {
+  border-radius: 10px;
+  background: #101217;
+}
+
+.dropIcon,
+.primaryFormButton,
+.linkForm button,
+.linkForm .captureButton {
+  background: #7c5cff;
+}
+
+@media (max-width: 1000px) {
+  .header {
+    grid-template-columns: 1fr auto;
+    padding-inline: 20px;
+    background: #0b0d10;
+    backdrop-filter: none;
+  }
+
+  .nav {
+    position: fixed;
+    z-index: 30;
+    inset: auto 0 0;
+    height: 54px;
+    justify-content: space-around;
+    padding: 7px 10px;
+    border-width: 1px 0 0;
+    border-radius: 0;
+    background: rgba(11, 13, 16, 0.98);
+  }
+
+  .navItem,
+  .navActive {
+    flex: 1;
+    max-width: 150px;
+  }
+
+  .workspace {
+    padding: 18px 18px 132px;
+  }
+
+  .projectHeader {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .projectActions {
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+
+  .studioGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .controlSidebar {
+    margin-top: 0;
+  }
+
+  .transport {
+    bottom: 54px;
+  }
+}
+
+@media (max-width: 560px) {
+  .header {
+    height: 54px;
+    padding-inline: 14px;
+  }
+
+  .brandMark {
+    width: 27px;
+    height: 27px;
+  }
+
+  .wordmark {
+    font-size: 19px;
+  }
+
+  .workspace {
+    padding: 14px 12px 128px;
+  }
+
+  .trackCopy h1 {
+    font-size: 20px;
+  }
+
+  .trackCopy p {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .actionButton span {
+    display: none;
+  }
+
+  .actionButtonWide {
+    min-width: max-content;
+  }
+
+  .waveformRow {
+    grid-template-columns: 38px 1fr;
+    padding: 8px;
+  }
+
+  .waveTrack {
+    grid-column: 1 / -1;
+  }
+
+  .notationCard {
+    height: 340px;
+  }
+
+  .notationMeta {
+    flex-wrap: wrap;
+    padding: 7px 8px;
+  }
+
+  .notationMeta > small,
+  .correctScoreButton {
+    display: none;
+  }
+
+  .scoreViewControls {
+    margin-left: auto;
+  }
+
+  .scoreResizeHandle > span:last-child {
+    display: none;
+  }
+
+  .scoreFooter {
+    gap: 9px;
+  }
+
+  .transport {
+    grid-template-columns: 32px 40px 32px minmax(110px, 1fr) 32px;
+    padding-inline: 10px;
+  }
+}

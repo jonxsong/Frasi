@@ -1,27 +1,27 @@
 @import "tailwindcss";
 
 :root {
-  --bg: #0a0c17;
-  --bg-deep: #080a13;
-  --panel: #111421;
-  --panel-raised: #151827;
-  --panel-soft: rgba(20, 23, 38, 0.82);
-  --line: rgba(211, 215, 236, 0.18);
-  --line-strong: rgba(220, 222, 243, 0.31);
-  --text: #f5f2f7;
-  --text-muted: #aaaabb;
-  --violet: #a968ef;
-  --violet-light: #cda4f7;
-  --violet-deep: #6e37c7;
-  --ivory: #f7f2e9;
-  --ivory-ink: #151216;
-  --amber: #f0ae55;
-  --success: #77c9a5;
-  --danger: #f17e93;
-  --serif: Iowan Old Style, Baskerville, "Times New Roman", serif;
+  --bg: #0d0f13;
+  --bg-deep: #090a0d;
+  --panel: #12151a;
+  --panel-raised: #171a20;
+  --panel-soft: rgba(18, 21, 26, 0.9);
+  --line: rgba(255, 255, 255, 0.09);
+  --line-strong: rgba(255, 255, 255, 0.15);
+  --text: #f5f6f7;
+  --text-muted: #9097a3;
+  --violet: #7c5cff;
+  --violet-light: #a89aff;
+  --violet-deep: #6246d9;
+  --ivory: #f8f7f3;
+  --ivory-ink: #17181b;
+  --amber: #d9aa63;
+  --success: #66c39a;
+  --danger: #ed7186;
   --sans:
     Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
+  --serif: var(--sans);
 }
 
 * {

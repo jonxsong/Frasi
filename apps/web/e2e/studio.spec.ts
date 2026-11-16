@@ -96,6 +96,43 @@ test("requests browser-mediated audio for a streaming reference", async ({
   expect(pageErrors).toEqual([]);
 });
 
+test("zooms and drag-resizes the score workspace", async ({
+  page,
+}, testInfo) => {
+  test.skip(
+    testInfo.project.name !== "chromium",
+    "Pointer-resize behavior only needs one desktop regression pass.",
+  );
+  await page.goto("/");
+  const score = page.locator('section[aria-label="Interactive score"]');
+  await expect(score.locator("svg").first()).toBeVisible({ timeout: 20_000 });
+  const zoom = score.getByLabel("Score zoom");
+  await expect(zoom).toHaveText("100%");
+  await score.getByRole("button", { name: "Zoom out score" }).click();
+  await expect(zoom).toHaveText("90%");
+
+  const resizeHandle = score.getByRole("separator", {
+    name: "Resize score panel",
+  });
+  await resizeHandle.scrollIntoViewIfNeeded();
+  const card = resizeHandle.locator("..");
+  const before = await card.boundingBox();
+  await resizeHandle.hover();
+  const handleBox = await resizeHandle.boundingBox();
+  expect(before).not.toBeNull();
+  expect(handleBox).not.toBeNull();
+  await page.mouse.down();
+  await page.mouse.move(
+    (handleBox?.x ?? 0) + (handleBox?.width ?? 0) / 2,
+    (handleBox?.y ?? 0) + 110,
+    { steps: 4 },
+  );
+  await page.mouse.up();
+  await expect
+    .poll(async () => (await card.boundingBox())?.height ?? 0)
+    .toBeGreaterThan((before?.height ?? 0) + 80);
+});
+
 test("transcribes an uploaded phrase as a guest without authentication", async ({
   page,
 }, testInfo) => {
