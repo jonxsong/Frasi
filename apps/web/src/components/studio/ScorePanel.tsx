@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { BookOpen, Music2, PencilLine, Sparkles } from "lucide-react";
+import { instruments } from "@frasi/music-core";
+import { transposeMusicXml } from "@/lib/musicXml";
 import { useStudioStore } from "@/store/studio";
 import styles from "./Studio.module.css";
 
@@ -31,6 +33,10 @@ const practiceKeys = ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb"
 export function ScorePanel() {
   const scoreRef = useRef<HTMLDivElement>(null);
   const musicXml = useStudioStore((state) => state.musicXml);
+  const pitchView = useStudioStore((state) => state.pitchView);
+  const transposeSemitones = useStudioStore((state) => state.transposeSemitones);
+  const transposeKey = useStudioStore((state) => state.transposeKey);
+  const instrument = useStudioStore((state) => state.instrument);
   const scoreTab = useStudioStore((state) => state.scoreTab);
   const currentTime = useStudioStore((state) => state.currentTime);
   const selectionStart = useStudioStore((state) => state.selectionStart);
@@ -65,7 +71,9 @@ export function ScorePanel() {
           spacingStaff: 8,
           spacingSystem: 11,
         });
-        if (!toolkit.loadData(musicXml)) throw new Error("Notation engine rejected this score.");
+        const writtenOffset = pitchView === "instrument" ? instruments[instrument].writtenOffsetSemitones : 0;
+        const displayXml = transposeMusicXml(musicXml, transposeSemitones + writtenOffset, transposeKey);
+        if (!toolkit.loadData(displayXml)) throw new Error("Notation engine rejected this score.");
         const pages = Math.min(toolkit.getPageCount(), 4);
         const rendered = Array.from({ length: pages }, (_, index) => toolkit?.renderToSVG(index + 1) ?? "")
           .map(sanitizeSvg)
@@ -88,7 +96,7 @@ export function ScorePanel() {
       active = false;
       toolkit?.destroy();
     };
-  }, [musicXml]);
+  }, [instrument, musicXml, pitchView, transposeKey, transposeSemitones]);
 
   useEffect(() => {
     const measures = scoreRef.current?.querySelectorAll<SVGGElement>("g.measure");
