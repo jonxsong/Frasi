@@ -1,0 +1,128 @@
+name: frasi
+
+services:
+  postgres:
+    image: postgres:16.16-alpine3.24
+    environment:
+      POSTGRES_DB: frasi
+      POSTGRES_USER: frasi
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-frasi-development-password}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U frasi -d frasi"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  redis:
+    image: redis:7.2.17-alpine3.22
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory-policy", "noeviction"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  object-storage:
+    image: rustfs/rustfs:1.0.6
+    command: ["/data"]
+    environment:
+      RUSTFS_ACCESS_KEY: ${FRASI_S3_ACCESS_KEY:-frasi}
+      RUSTFS_SECRET_KEY: ${FRASI_S3_SECRET_KEY:-frasi-development-object-secret}
+      RUSTFS_ADDRESS: :9000
+      RUSTFS_CONSOLE_ADDRESS: :9001
+      RUSTFS_CONSOLE_ENABLE: "true"
+      RUSTFS_LOG_LEVEL: info
+      RUSTFS_SSE_S3_MASTER_KEY: ${FRASI_S3_MASTER_KEY:-ZnJhc2ktZGV2ZWxvcG1lbnQtbWFzdGVyLWtleS0zMiE=}
+    volumes:
+      - object-data:/data
+    ports:
+      - "9001:9001"
+    restart: unless-stopped
+
+  object-init:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/api.Dockerfile
+    depends_on:
+      object-storage:
+        condition: service_started
+    environment:
+      FRASI_S3_ENDPOINT: http://object-storage:9000
+      FRASI_S3_ACCESS_KEY: ${FRASI_S3_ACCESS_KEY:-frasi}
+      FRASI_S3_SECRET_KEY: ${FRASI_S3_SECRET_KEY:-frasi-development-object-secret}
+      FRASI_S3_BUCKET: frasi-audio
+    entrypoint: ["python", "/app/infrastructure/scripts/init_object_storage.py"]
+    restart: "no"
+
+  api:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/api.Dockerfile
+    environment: &api-environment
+      FRASI_ENV: ${FRASI_ENV:-development}
+      FRASI_DATABASE_URL: postgresql+psycopg://frasi:${POSTGRES_PASSWORD:-frasi-development-password}@postgres:5432/frasi
+      FRASI_REDIS_URL: redis://redis:6379/0
+      FRASI_STORAGE_BACKEND: s3
+      FRASI_S3_ENDPOINT: http://object-storage:9000
+      FRASI_S3_ACCESS_KEY: ${FRASI_S3_ACCESS_KEY:-frasi}
+      FRASI_S3_SECRET_KEY: ${FRASI_S3_SECRET_KEY:-frasi-development-object-secret}
+      FRASI_S3_BUCKET: frasi-audio
+      FRASI_JWT_SECRET: ${FRASI_JWT_SECRET:-development-only-secret-change-before-production}
+      FRASI_CORS_ORIGINS: ${FRASI_CORS_ORIGINS:-http://localhost:3000}
+      FRASI_YOUTUBE_API_KEY: ${FRASI_YOUTUBE_API_KEY:-}
+      FRASI_SPOTIFY_CLIENT_ID: ${FRASI_SPOTIFY_CLIENT_ID:-}
+      FRASI_SPOTIFY_CLIENT_SECRET: ${FRASI_SPOTIFY_CLIENT_SECRET:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      object-init:
+        condition: service_completed_successfully
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8000/api/v1/health/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/worker.Dockerfile
+    environment: *api-environment
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/web.Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
+  redis-data:
+  object-data:

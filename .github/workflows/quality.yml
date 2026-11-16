@@ -1,0 +1,52 @@
+name: Quality
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.25.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build
+
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: sudo apt-get update && sudo apt-get install --yes ffmpeg libsndfile1
+      - run: python -m pip install -e './services/api[dev]' -e './ml[dev]' -e ./services/worker
+      - run: ruff format --check services/api services/worker ml
+      - run: ruff check services/api services/worker ml
+      - run: pytest -q
+
+  containers:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker compose config --quiet
+      - run: docker compose build api worker web
+      - run: docker compose up --detach
+      - run: pwsh -NoProfile -File infrastructure/scripts/smoke_test.ps1
+      - if: always()
+        run: docker compose logs --no-color && docker compose down --volumes

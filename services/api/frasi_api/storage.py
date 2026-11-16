@@ -7,6 +7,7 @@ from tempfile import NamedTemporaryFile
 from typing import Protocol
 
 import boto3
+from botocore.config import Config
 
 from .config import Settings
 
@@ -62,6 +63,8 @@ class S3Storage:
             endpoint_url=settings.s3_endpoint,
             aws_access_key_id=settings.s3_access_key,
             aws_secret_access_key=settings.s3_secret_key,
+            config=Config(s3={"addressing_style": "path"}),
+            region_name="us-east-1",
         )
 
     async def put(self, source: Path, key: str, media_type: str) -> None:
