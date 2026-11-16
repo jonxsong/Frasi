@@ -1,13 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import {
-  Music2,
-  PencilLine,
-  ScanLine,
-  ZoomIn,
-  ZoomOut,
-} from "lucide-react";
+import { Music2, PencilLine, ScanLine, ZoomIn, ZoomOut } from "lucide-react";
 import { transposeMusicXml } from "@/lib/musicXml";
 import { useStudioStore } from "@/store/studio";
 import styles from "./Studio.module.css";
@@ -88,6 +82,8 @@ export function ScorePanel({ onNotify }: ScorePanelProps) {
   const revisionId = useStudioStore((state) => state.revisionId);
   const projectTitle = useStudioStore((state) => state.projectTitle);
   const speed = useStudioStore((state) => state.speed);
+  const tempoBpm = useStudioStore((state) => state.tempoBpm);
+  const feel = useStudioStore((state) => state.feel);
   const [svg, setSvg] = useState("");
   const [renderError, setRenderError] = useState<string | null>(null);
   const [mastered, setMastered] = useState<Set<string>>(new Set());
@@ -216,9 +212,7 @@ export function ScorePanel({ onNotify }: ScorePanelProps) {
   }
 
   function updateScoreZoom(next: number) {
-    setScoreZoom(
-      Math.max(MIN_SCORE_ZOOM, Math.min(MAX_SCORE_ZOOM, next)),
-    );
+    setScoreZoom(Math.max(MIN_SCORE_ZOOM, Math.min(MAX_SCORE_ZOOM, next)));
   }
 
   function fitScoreToView() {
@@ -263,8 +257,8 @@ export function ScorePanel({ onNotify }: ScorePanelProps) {
         >
           <div className={styles.notationMeta}>
             <div className={styles.notationContext}>
-              <span>♩ = 140</span>
-              <span>Swing</span>
+              <span>♩ = {tempoBpm}</span>
+              <span>{feel}</span>
             </div>
             {isDemo && (
               <small>
@@ -351,7 +345,10 @@ export function ScorePanel({ onNotify }: ScorePanelProps) {
             }}
             onPointerMove={(event) => {
               const state = resizeRef.current;
-              if (!state || !event.currentTarget.hasPointerCapture(event.pointerId))
+              if (
+                !state ||
+                !event.currentTarget.hasPointerCapture(event.pointerId)
+              )
                 return;
               setScoreHeight(
                 Math.max(
@@ -433,7 +430,7 @@ export function ScorePanel({ onNotify }: ScorePanelProps) {
                       1,
                       Math.round((Date.now() - practiceStartedAt) / 1000),
                     ),
-                    tempo_bpm: 140 * speed,
+                    tempo_bpm: tempoBpm * speed,
                     practiced_keys: [...mastered],
                     mastered_keys: [...mastered],
                   });
@@ -452,7 +449,7 @@ export function ScorePanel({ onNotify }: ScorePanelProps) {
                       1,
                       Math.round((Date.now() - practiceStartedAt) / 1000),
                     ),
-                    tempo_bpm: 140 * speed,
+                    tempo_bpm: tempoBpm * speed,
                     practiced_keys: [...mastered],
                     mastered_keys: [...mastered],
                   }),

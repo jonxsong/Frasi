@@ -75,14 +75,12 @@ test("loads the demo studio and opens the compliant ingestion flow", async ({
     .toBe("1.5px non-scaling-stroke");
 
   await page.getByRole("button", { name: "New Transcription" }).click();
-  const dialog = page.getByRole("dialog", { name: "Bring in a recording" });
+  const dialog = page.getByRole("dialog");
   await expect(dialog).toBeVisible();
   await expect(dialog.getByRole("tab", { name: "Audio file" })).toBeVisible();
   await dialog.getByRole("tab", { name: "YouTube / Spotify" }).click();
-  await expect(dialog).toContainText("Capture 20 seconds from playing tab");
-  await expect(dialog).toContainText(
-    "Browser-mediated, real-time capture only",
-  );
+  await expect(dialog).toContainText("Start tab-audio capture");
+  await expect(dialog).toContainText("Capture runs until you stop it");
   await dialog.getByRole("button", { name: "Close" }).click();
   await expect(dialog).toBeHidden();
 });
@@ -90,6 +88,7 @@ test("loads the demo studio and opens the compliant ingestion flow", async ({
 test("captures and transcribes browser-mediated streaming audio", async ({
   page,
 }, testInfo) => {
+  test.setTimeout(90_000);
   const pageErrors: string[] = [];
   page.on("pageerror", (error) => pageErrors.push(error.message));
   test.skip(
@@ -148,20 +147,23 @@ test("captures and transcribes browser-mediated streaming audio", async ({
   }, wavFixture().toString("base64"));
   await page.goto("/");
   await page.getByRole("button", { name: "New Transcription" }).click();
-  const dialog = page.getByRole("dialog", { name: "Bring in a recording" });
+  const dialog = page.getByRole("dialog");
   await dialog.getByRole("tab", { name: "YouTube / Spotify" }).click();
   await dialog
     .getByLabel("YouTube or Spotify URL")
     .fill("https://open.spotify.com/track/frasi-smoke");
-  await dialog
-    .getByRole("button", { name: "Capture 20 seconds from playing tab" })
-    .click();
-  await dialog.getByRole("button", { name: /Stop & transcribe/ }).click();
-  await expect(dialog).toBeHidden({ timeout: 30_000 });
+  await dialog.getByRole("button", { name: "Start tab-audio capture" }).click();
+  await page.waitForTimeout(1_200);
+  await dialog.getByRole("button", { name: /Stop capture/ }).click();
+  await expect(
+    dialog.getByRole("heading", { name: "Select the phrase" }),
+  ).toBeVisible();
+  await dialog.getByRole("button", { name: /Transcribe .* selection/ }).click();
+  await expect(dialog).toBeHidden({ timeout: 60_000 });
   await expect(page.getByRole("heading", { level: 1 })).toContainText(
     "spotify-tab-capture",
   );
-  await expect(page.getByText(/Local transcription ready/)).toBeVisible();
+  await expect(page.getByText(/Selected range transcribed/)).toBeVisible();
   expect(pageErrors).toEqual([]);
 });
 
@@ -205,13 +207,14 @@ test("zooms and drag-resizes the score workspace", async ({
 test("transcribes an uploaded phrase as a guest without authentication", async ({
   page,
 }, testInfo) => {
+  test.setTimeout(90_000);
   test.skip(
     testInfo.project.name !== "chromium",
     "The browser DSP path only needs one desktop regression pass.",
   );
   await page.goto("/");
   await page.getByRole("button", { name: "New Transcription" }).click();
-  const dialog = page.getByRole("dialog", { name: "Bring in a recording" });
+  const dialog = page.getByRole("dialog");
   await expect(dialog).toContainText("No account is required");
   await dialog.locator('input[type="file"]').setInputFiles({
     name: "guest-ledger-phrase.wav",
@@ -219,14 +222,25 @@ test("transcribes an uploaded phrase as a guest without authentication", async (
     buffer: wavFixture(),
   });
 
-  await expect(dialog).toBeHidden({ timeout: 30_000 });
+  await expect(
+    dialog.getByRole("heading", { name: "Select the phrase" }),
+  ).toBeVisible();
+  await dialog.getByLabel("Selection start time").fill("0.2");
+  await dialog.getByLabel("Selection end time").fill("1.4");
+  await dialog.getByRole("button", { name: /Transcribe .* selection/ }).click();
+
+  await expect(dialog).toBeHidden({ timeout: 60_000 });
   await expect(page.getByRole("heading", { level: 1 })).toContainText(
     "guest-ledger-phrase",
   );
-  await expect(page.getByText(/Local transcription ready/)).toBeVisible();
+  await expect(page.getByText(/Selected range transcribed/)).toBeVisible();
+  await expect(page.getByText("Straight", { exact: true })).toBeVisible();
   await expect(
     page.locator('section[aria-label="Interactive score"] svg').first(),
   ).toBeVisible({ timeout: 20_000 });
+  await expect(
+    page.getByRole("slider", { name: "Selection start" }),
+  ).toHaveAttribute("aria-valuenow", "0.2");
 });
 
 test("switches analysis and twelve-key practice views without page overflow", async ({

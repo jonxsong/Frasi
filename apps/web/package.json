@@ -3,7 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "prepare:basic-pitch": "node scripts/copy-basic-pitch-model.mjs",
+    "predev": "node scripts/copy-basic-pitch-model.mjs",
     "dev": "next dev --webpack",
+    "prebuild": "node scripts/copy-basic-pitch-model.mjs",
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint .",
@@ -15,6 +18,7 @@
   "dependencies": {
     "@frasi/music-core": "workspace:*",
     "@frasi/shared-types": "workspace:*",
+    "@spotify/basic-pitch": "1.0.1",
     "@tanstack/react-query": "^5.90.10",
     "clsx": "^2.1.1",
     "lucide-react": "^0.554.0",

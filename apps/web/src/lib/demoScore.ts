@@ -169,10 +169,30 @@ export function createDemoMusicXml(
         index === 0
           ? `<attributes><divisions>2</divisions><key><fifths>-1</fifths></key><time><beats>4</beats><beat-type>4</beat-type></time><clef><sign>G</sign><line>2</line></clef></attributes><direction placement="above"><direction-type><metronome><beat-unit>quarter</beat-unit><per-minute>140</per-minute></metronome></direction-type><sound tempo="140"/></direction>`
           : "";
+      const beams: Array<"begin" | "continue" | "end" | null> =
+        measure.notes.map(() => null);
+      for (let noteIndex = 0; noteIndex < measure.notes.length;) {
+        if (measure.notes[noteIndex]?.duration !== 1) {
+          noteIndex += 1;
+          continue;
+        }
+        const runStart = noteIndex;
+        while (measure.notes[noteIndex]?.duration === 1) noteIndex += 1;
+        const runLength = noteIndex - runStart;
+        if (runLength < 2) continue;
+        for (let runIndex = 0; runIndex < runLength; runIndex += 1) {
+          beams[runStart + runIndex] =
+            runIndex === 0
+              ? "begin"
+              : runIndex === runLength - 1
+                ? "end"
+                : "continue";
+        }
+      }
       const notes = measure.notes
         .map(
-          (note) =>
-            `<note><pitch><step>${note.step}</step>${note.alter ? `<alter>${note.alter}</alter>` : ""}<octave>${note.octave}</octave></pitch><duration>${note.duration}</duration><voice>1</voice><type>${note.type}</type>${note.duration === 1 ? '<beam number="1">continue</beam>' : ""}</note>`,
+          (note, noteIndex) =>
+            `<note><pitch><step>${note.step}</step>${note.alter ? `<alter>${note.alter}</alter>` : ""}<octave>${note.octave}</octave></pitch><duration>${note.duration}</duration><voice>1</voice><type>${note.type}</type>${beams[noteIndex] ? `<beam number="1">${beams[noteIndex]}</beam>` : ""}</note>`,
         )
         .join("");
       return `<measure number="${index + 1}">${attributes}${harmony(measure.chord)}${notes}</measure>`;

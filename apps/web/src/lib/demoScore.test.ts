@@ -15,5 +15,7 @@ describe("demo score", () => {
 
     expect(openingMeasures[0]).toContain("<step>C</step><octave>4</octave>");
     expect(openingMeasures[1]).toContain("<step>C</step><octave>6</octave>");
+    expect(openingMeasures[0]).toContain('<beam number="1">begin</beam>');
+    expect(openingMeasures[0]).toContain('<beam number="1">end</beam>');
   });
 });

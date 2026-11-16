@@ -17,6 +17,8 @@ interface StudioState {
   loopEnabled: boolean;
   speed: number;
   volume: number;
+  tempoBpm: number;
+  feel: "Swing" | "Straight";
   pitchView: PitchView;
   transposeSemitones: number;
   transposeKey: string;
@@ -63,7 +65,7 @@ interface StudioState {
     artist: string | null,
   ) => void;
   setRemoteProject: (projectId: string, jobId: string) => void;
-  setLocalProject: (title: string, musicXml: string) => void;
+  setLocalProject: (title: string, musicXml: string, bpm?: number) => void;
   setJob: (
     status: StudioState["jobStatus"],
     stage: string | null,
@@ -84,6 +86,8 @@ const initialState = {
   loopEnabled: true,
   speed: 1,
   volume: 0.8,
+  tempoBpm: 140,
+  feel: "Swing" as const,
   pitchView: "concert" as const,
   transposeSemitones: 0,
   transposeKey: "C (Original)",
@@ -136,9 +140,11 @@ export const useStudioStore = create<StudioState>()(
           duration,
           currentTime: 0,
           selectionStart: 0,
-          selectionEnd: Math.min(duration, 30),
+          selectionEnd: duration,
           isDemo: false,
           isPlaying: false,
+          tempoBpm: 120,
+          feel: "Straight",
           projectTitle: audioName.replace(/\.[^.]+$/, ""),
           projectArtist: "Guest browser session",
           recordingId: null,
@@ -165,7 +171,7 @@ export const useStudioStore = create<StudioState>()(
           jobStage: "waiting_for_worker",
           jobProgress: 0,
         }),
-      setLocalProject: (projectTitle, musicXml) =>
+      setLocalProject: (projectTitle, musicXml, tempoBpm = 120) =>
         set({
           projectTitle,
           projectArtist: "Guest browser transcription",
@@ -177,6 +183,8 @@ export const useStudioStore = create<StudioState>()(
           jobStatus: "succeeded",
           jobStage: "local_complete",
           jobProgress: 1,
+          tempoBpm,
+          feel: "Straight",
         }),
       setJob: (jobStatus, jobStage, jobProgress) =>
         set({ jobStatus, jobStage, jobProgress }),
@@ -196,6 +204,8 @@ export const useStudioStore = create<StudioState>()(
       partialize: (state) => ({
         speed: state.speed,
         volume: state.volume,
+        tempoBpm: state.tempoBpm,
+        feel: state.feel,
         pitchView: state.pitchView,
         transposeSemitones: state.transposeSemitones,
         transposeKey: state.transposeKey,

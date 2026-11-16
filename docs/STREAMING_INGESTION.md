@@ -4,12 +4,15 @@ Frasi accepts YouTube, YouTube Music, and Spotify links without pretending that 
 developer APIs expose downloadable audio. The public guest workflow is user-mediated:
 
 1. Frasi validates the official HTTPS link and opens it in its native service.
-2. The user starts playback, returns to Frasi, and chooses **Capture 20 seconds**.
+2. The user starts playback, returns to Frasi, and chooses **Start tab-audio capture**.
 3. The browser's own display-share picker asks which tab to share and whether tab audio is
    included.
-4. Frasi records only the granted audio track into a bounded, in-memory `MediaRecorder` buffer.
-5. The same local monophonic pitch/rhythm pipeline used for file uploads converts the buffer to
-   reviewable MusicXML. The recording is never uploaded or written to persistent storage.
+4. Frasi records only the granted audio track into a bounded, in-memory `MediaRecorder` buffer
+   until the user stops it (maximum ten minutes).
+5. The user previews the capture and selects the exact start and end of the phrase.
+6. The same local Basic Pitch/lead-line/rhythm pipeline used for file uploads converts only the
+   selected region to reviewable MusicXML. The recording is never uploaded or written to
+   persistent storage.
 
 This design is deliberate. YouTube's API policies prohibit downloading, importing, caching, or
 storing audiovisual content without prior written approval. Spotify's Web Playback SDK provides

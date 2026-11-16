@@ -15,8 +15,8 @@ twelve-key practice.
 [**Open the live Frasi studio**](https://frasi-jazz-studio.perkyaisle4.chatgpt.site)
 
 **No account required:** upload a WAV, MP3, FLAC, M4A, or OGG phrase—or capture
-authorized playback from a shared YouTube/Spotify browser tab—and Frasi will transcribe the
-opening 20 seconds directly in your browser.
+authorized playback from a shared YouTube/Spotify browser tab—select the exact start and end,
+and Frasi will transcribe that region directly in your browser.
 
 </div>
 
@@ -44,11 +44,13 @@ Compose.
 - CPU monophonic DSP using HPSS, onset detection, pYIN pitch tracking, tempo estimation,
   rational rhythm quantization, dotted values, tuplets, dual performance/symbolic timing, and
   MusicXML generation.
-- Account-free browser transcription using real autocorrelation pitch tracking and rhythm
-  quantization, so the public studio is testable without a cloud API or uploaded audio leaving
-  the device.
+- Account-free browser transcription using Spotify Basic Pitch inference, lead-line extraction,
+  and rhythm quantization, so the public studio is testable without a cloud API or uploaded
+  audio leaving the device.
+- Exact start/end selection for uploads and captured playback, with chunked analysis of up to
+  ten minutes per pass instead of a hidden opening-segment cutoff.
 - Bounded in-memory tab-audio recording for authorized YouTube and Spotify playback, with an
-  explicit browser share picker, automatic 20-second stop, and honest protected-content errors.
+  explicit browser share picker, user-controlled stop, and honest protected-content errors.
 - Immutable score correction with optimistic concurrency, note/chord validation, and complete
   revision history.
 - Canonical concert-pitch representation with derived alto/tenor/soprano/baritone saxophone,
@@ -56,7 +58,7 @@ Compose.
 - Deterministic key/mode, chord, Roman-numeral, ii–V–I, and scale-choice analysis with explicit
   confidence and caveats.
 - Jazz-standard chord engraving (`△`, `−`, `ø`, `°`) with semantic MusicXML harmony kinds,
-  slash-bass transposition, and ledger lines above and below the staff.
+  slash-bass transposition, ledger lines, rhythmic beaming, ties, and visible triplet notation.
 - Minimal responsive product UI with 40–160% score zoom, one-click fit-to-view, and an
   accessible drag/keyboard-resizable notation workspace.
 - Practice and vocabulary ledgers plus real MusicXML, standard MIDI, and printable PDF exports.

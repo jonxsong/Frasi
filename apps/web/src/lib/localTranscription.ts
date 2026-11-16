@@ -10,10 +10,9 @@ export interface PitchEstimate {
   confidence: number;
 }
 
-const TARGET_SAMPLE_RATE = 11_025;
-const FRAME_SIZE = 2_048;
-const HOP_SIZE = 512;
-const MAX_ANALYSIS_SECONDS = 20;
+const MODEL_SAMPLE_RATE = 22_050;
+const MODEL_CHUNK_SECONDS = 30;
+const MODEL_CHUNK_OVERLAP_SECONDS = 0.75;
 const DIVISIONS = 12;
 const MEASURE_TICKS = DIVISIONS * 4;
 const TICK_CANDIDATES = [3, 4, 6, 8, 9, 12, 18, 24, 36, 48];
@@ -137,92 +136,269 @@ export function detectPitch(
   return { midi, confidence: Math.min(1, Math.max(0, bestCorrelation)) };
 }
 
-function downmixAndResample(buffer: AudioBuffer): Float32Array {
-  const sourceLength = Math.min(
+function downmixAndResampleSelection(
+  buffer: AudioBuffer,
+  startSeconds: number,
+  endSeconds: number,
+): Float32Array {
+  const sourceStart = Math.floor(startSeconds * buffer.sampleRate);
+  const sourceEnd = Math.min(
     buffer.length,
-    Math.floor(MAX_ANALYSIS_SECONDS * buffer.sampleRate),
+    Math.ceil(endSeconds * buffer.sampleRate),
   );
-  const ratio = buffer.sampleRate / TARGET_SAMPLE_RATE;
+  const ratio = buffer.sampleRate / MODEL_SAMPLE_RATE;
   const output = new Float32Array(
-    Math.max(1, Math.floor(sourceLength / ratio)),
+    Math.max(1, Math.floor((sourceEnd - sourceStart) / ratio)),
   );
   const channels = Array.from({ length: buffer.numberOfChannels }, (_, index) =>
     buffer.getChannelData(index),
   );
   for (let target = 0; target < output.length; target += 1) {
-    const sourceStart = Math.floor(target * ratio);
-    const sourceEnd = Math.min(
-      sourceLength,
-      Math.max(sourceStart + 1, Math.floor((target + 1) * ratio)),
-    );
+    const sourcePosition = sourceStart + target * ratio;
+    const left = Math.floor(sourcePosition);
+    const right = Math.min(sourceEnd - 1, left + 1);
+    const mix = sourcePosition - left;
     let value = 0;
-    let count = 0;
-    for (let source = sourceStart; source < sourceEnd; source += 1) {
-      for (const channel of channels) {
-        value += channel[source] ?? 0;
-        count += 1;
-      }
+    for (const channel of channels) {
+      const leftSample = channel[left] ?? 0;
+      const rightSample = channel[right] ?? leftSample;
+      value += leftSample + (rightSample - leftSample) * mix;
     }
-    output[target] = count ? value / count : 0;
+    output[target] = channels.length ? value / channels.length : 0;
   }
   return output;
 }
 
-function observationsToNotes(
-  observations: Array<PitchEstimate & { time: number }>,
-): LocalNoteEvent[] {
-  if (!observations.length) return [];
-  const frameSeconds = HOP_SIZE / TARGET_SAMPLE_RATE;
-  const notes: LocalNoteEvent[] = [];
-  let group: Array<PitchEstimate & { time: number }> = [];
+export interface ModelNoteEvent {
+  startTimeSeconds: number;
+  durationSeconds: number;
+  pitchMidi: number;
+  amplitude: number;
+}
 
-  function flush() {
-    if (group.length < 2) {
-      group = [];
-      return;
+interface BasicPitchRuntime {
+  engine: {
+    evaluateModel: (
+      audio: Float32Array,
+      onComplete: (
+        frames: number[][],
+        onsets: number[][],
+        contours: number[][],
+      ) => void,
+      onProgress: (progress: number) => void,
+    ) => Promise<void>;
+  };
+  outputToNotesPoly: (
+    frames: number[][],
+    onsets: number[][],
+    onsetThreshold?: number,
+    frameThreshold?: number,
+    minimumNoteLength?: number,
+  ) => Array<{
+    startFrame: number;
+    durationFrames: number;
+    pitchMidi: number;
+    amplitude: number;
+  }>;
+  noteFramesToTime: (
+    notes: Array<{
+      startFrame: number;
+      durationFrames: number;
+      pitchMidi: number;
+      amplitude: number;
+    }>,
+  ) => ModelNoteEvent[];
+}
+
+let basicPitchRuntime: Promise<BasicPitchRuntime> | null = null;
+
+async function getBasicPitchRuntime(): Promise<BasicPitchRuntime> {
+  basicPitchRuntime ??= import("@spotify/basic-pitch").then((module) => ({
+    engine: new module.BasicPitch("/models/basic-pitch/model.json"),
+    outputToNotesPoly: module.outputToNotesPoly,
+    noteFramesToTime: module.noteFramesToTime,
+  }));
+  return basicPitchRuntime;
+}
+
+function clusterByOnset(notes: ModelNoteEvent[]): ModelNoteEvent[][] {
+  const clusters: ModelNoteEvent[][] = [];
+  for (const note of [...notes].sort(
+    (left, right) => left.startTimeSeconds - right.startTimeSeconds,
+  )) {
+    const cluster = clusters.at(-1);
+    if (
+      cluster &&
+      note.startTimeSeconds - (cluster[0]?.startTimeSeconds ?? 0) <= 0.075
+    ) {
+      cluster.push(note);
+    } else {
+      clusters.push([note]);
     }
-    const roundedMidi = Math.round(median(group.map((item) => item.midi)));
-    const onsetSeconds = group[0]?.time ?? 0;
-    const offsetSeconds = (group.at(-1)?.time ?? onsetSeconds) + frameSeconds;
-    notes.push({
-      midi: roundedMidi,
-      onsetSeconds,
-      offsetSeconds,
-      confidence:
-        group.reduce((sum, item) => sum + item.confidence, 0) / group.length,
+  }
+  return clusters;
+}
+
+/** Select one coherent lead line from Basic Pitch's polyphonic candidates. */
+export function selectMelodicLine(notes: ModelNoteEvent[]): LocalNoteEvent[] {
+  const clusters = clusterByOnset(
+    notes.filter(
+      (note) =>
+        note.pitchMidi >= 36 &&
+        note.pitchMidi <= 100 &&
+        note.durationSeconds >= 0.045 &&
+        note.amplitude >= 0.18,
+    ),
+  );
+  if (!clusters.length) return [];
+
+  const scores: number[][] = [];
+  const previousIndexes: number[][] = [];
+  clusters.forEach((cluster, clusterIndex) => {
+    scores[clusterIndex] = [];
+    previousIndexes[clusterIndex] = [];
+    cluster.forEach((note, noteIndex) => {
+      const evidence =
+        note.amplitude * 2 + Math.min(1, note.durationSeconds) * 0.28;
+      if (clusterIndex === 0) {
+        scores[clusterIndex]![noteIndex] = evidence;
+        previousIndexes[clusterIndex]![noteIndex] = -1;
+        return;
+      }
+      let bestScore = Number.NEGATIVE_INFINITY;
+      let bestPrevious = 0;
+      const previousCluster = clusters[clusterIndex - 1] ?? [];
+      previousCluster.forEach((previous, previousIndex) => {
+        const leapPenalty =
+          Math.min(24, Math.abs(note.pitchMidi - previous.pitchMidi)) * 0.045;
+        const previousEnd =
+          previous.startTimeSeconds + previous.durationSeconds;
+        const overlapPenalty =
+          Math.max(0, previousEnd - note.startTimeSeconds) * 0.22;
+        const gapPenalty =
+          Math.max(0, note.startTimeSeconds - previousEnd - 1.25) * 0.08;
+        const score =
+          (scores[clusterIndex - 1]?.[previousIndex] ?? 0) +
+          evidence -
+          leapPenalty -
+          overlapPenalty -
+          gapPenalty;
+        if (score > bestScore) {
+          bestScore = score;
+          bestPrevious = previousIndex;
+        }
+      });
+      scores[clusterIndex]![noteIndex] = bestScore;
+      previousIndexes[clusterIndex]![noteIndex] = bestPrevious;
     });
-    group = [];
-  }
+  });
 
-  for (const observation of observations) {
-    const previous = group.at(-1);
-    const groupPitch = group.length
-      ? Math.round(median(group.map((item) => item.midi)))
-      : Math.round(observation.midi);
-    const discontinuity =
-      previous &&
-      (observation.time - previous.time > frameSeconds * 1.8 ||
-        Math.abs(Math.round(observation.midi) - groupPitch) >= 1);
-    if (discontinuity) flush();
-    group.push(observation);
+  let selectedIndex = (scores.at(-1) ?? []).reduce(
+    (best, score, index, values) =>
+      score > (values[best] ?? -Infinity) ? index : best,
+    0,
+  );
+  const selected: ModelNoteEvent[] = [];
+  for (
+    let clusterIndex = clusters.length - 1;
+    clusterIndex >= 0;
+    clusterIndex -= 1
+  ) {
+    const note = clusters[clusterIndex]?.[selectedIndex];
+    if (note) selected.push(note);
+    selectedIndex = previousIndexes[clusterIndex]?.[selectedIndex] ?? 0;
   }
-  flush();
+  selected.reverse();
 
-  const merged: LocalNoteEvent[] = [];
-  for (const note of notes) {
-    const previous = merged.at(-1);
+  const line: LocalNoteEvent[] = [];
+  for (const note of selected) {
+    const current: LocalNoteEvent = {
+      midi: Math.round(note.pitchMidi),
+      onsetSeconds: note.startTimeSeconds,
+      offsetSeconds: note.startTimeSeconds + note.durationSeconds,
+      confidence: note.amplitude,
+    };
+    const previous = line.at(-1);
     if (
       previous &&
-      previous.midi === note.midi &&
-      note.onsetSeconds - previous.offsetSeconds < 0.11
+      previous.midi === current.midi &&
+      current.onsetSeconds - previous.offsetSeconds < 0.08
     ) {
-      previous.offsetSeconds = note.offsetSeconds;
-      previous.confidence = (previous.confidence + note.confidence) / 2;
-    } else {
-      merged.push({ ...note });
+      previous.offsetSeconds = Math.max(
+        previous.offsetSeconds,
+        current.offsetSeconds,
+      );
+      previous.confidence = Math.max(previous.confidence, current.confidence);
+      continue;
+    }
+    if (previous && current.onsetSeconds < previous.offsetSeconds) {
+      if (
+        current.offsetSeconds <= previous.offsetSeconds &&
+        current.confidence < previous.confidence * 1.1
+      ) {
+        continue;
+      }
+      previous.offsetSeconds = Math.max(
+        previous.onsetSeconds + 0.045,
+        current.onsetSeconds,
+      );
+    }
+    line.push(current);
+  }
+  return line;
+}
+
+async function transcribeWithBasicPitch(
+  audio: Float32Array,
+  onProgress: (progress: number) => void,
+): Promise<ModelNoteEvent[]> {
+  const runtime = await getBasicPitchRuntime();
+  const chunkSamples = Math.floor(MODEL_CHUNK_SECONDS * MODEL_SAMPLE_RATE);
+  const overlapSamples = Math.floor(
+    MODEL_CHUNK_OVERLAP_SECONDS * MODEL_SAMPLE_RATE,
+  );
+  const stride = chunkSamples - overlapSamples;
+  const output: ModelNoteEvent[] = [];
+  const chunkCount = Math.max(
+    1,
+    Math.ceil((audio.length - overlapSamples) / stride),
+  );
+
+  for (let chunkIndex = 0; chunkIndex < chunkCount; chunkIndex += 1) {
+    const startSample = chunkIndex * stride;
+    const endSample = Math.min(audio.length, startSample + chunkSamples);
+    const frames: number[][] = [];
+    const onsets: number[][] = [];
+    await runtime.engine.evaluateModel(
+      audio.slice(startSample, endSample),
+      (nextFrames, nextOnsets) => {
+        frames.push(...nextFrames);
+        onsets.push(...nextOnsets);
+      },
+      (chunkProgress) =>
+        onProgress((chunkIndex + chunkProgress) / Math.max(1, chunkCount)),
+    );
+    const offsetSeconds = startSample / MODEL_SAMPLE_RATE;
+    const isFirst = chunkIndex === 0;
+    const isLast = endSample >= audio.length;
+    const keepStart = isFirst ? 0 : MODEL_CHUNK_OVERLAP_SECONDS / 2;
+    const keepEnd = isLast
+      ? Number.POSITIVE_INFINITY
+      : (endSample - startSample) / MODEL_SAMPLE_RATE -
+        MODEL_CHUNK_OVERLAP_SECONDS / 2;
+    const chunkNotes = runtime.noteFramesToTime(
+      runtime.outputToNotesPoly(frames, onsets, 0.5, 0.3, 5),
+    );
+    for (const note of chunkNotes) {
+      const center = note.startTimeSeconds + note.durationSeconds / 2;
+      if (center < keepStart || center >= keepEnd) continue;
+      output.push({
+        ...note,
+        startTimeSeconds: note.startTimeSeconds + offsetSeconds,
+      });
     }
   }
-  return merged.slice(0, 96);
+  return output;
 }
 
 export function estimateTempo(notes: LocalNoteEvent[]): number {
@@ -242,6 +418,9 @@ interface SymbolicItem {
   ticks: number;
   tieStart?: boolean;
   tieStop?: boolean;
+  beams?: Array<"begin" | "continue" | "end">;
+  tuplet?: "start" | "stop";
+  tupletBracket?: boolean;
 }
 
 function symbolicItems(notes: LocalNoteEvent[], bpm: number): SymbolicItem[] {
@@ -269,7 +448,7 @@ function splitAcrossMeasures(items: SymbolicItem[]): SymbolicItem[][] {
   for (const item of items) {
     let remaining = item.ticks;
     let firstChunk = true;
-    while (remaining > 0 && measures.length <= 24) {
+    while (remaining > 0) {
       const available = MEASURE_TICKS - cursor;
       const ticks = Math.min(remaining, available);
       measures.at(-1)?.push({
@@ -298,17 +477,91 @@ function splitAcrossMeasures(items: SymbolicItem[]): SymbolicItem[][] {
   return measures;
 }
 
+function annotateRhythm(items: SymbolicItem[]): SymbolicItem[] {
+  const annotated = items.map((item) => ({ ...item }));
+  let cursor = 0;
+  let beamGroup: number[] = [];
+  let beamBeat = -1;
+
+  function flushBeamGroup() {
+    if (beamGroup.length >= 2) {
+      beamGroup.forEach((itemIndex, groupIndex) => {
+        const item = annotated[itemIndex];
+        if (!item) return;
+        const value =
+          groupIndex === 0
+            ? "begin"
+            : groupIndex === beamGroup.length - 1
+              ? "end"
+              : "continue";
+        const levels = noteType(item.ticks).type === "16th" ? 2 : 1;
+        item.beams = Array.from({ length: levels }, () => value);
+      });
+    }
+    beamGroup = [];
+  }
+
+  annotated.forEach((item, index) => {
+    const notation = noteType(item.ticks);
+    const beat = Math.floor(cursor / DIVISIONS);
+    const endBeat = Math.floor((cursor + item.ticks - 1) / DIVISIONS);
+    const beamable =
+      item.midi !== null &&
+      (notation.type === "eighth" || notation.type === "16th") &&
+      beat === endBeat;
+    if (!beamable || (beamGroup.length && beat !== beamBeat)) flushBeamGroup();
+    if (beamable) {
+      beamBeat = beat;
+      beamGroup.push(index);
+    }
+    cursor += item.ticks;
+  });
+  flushBeamGroup();
+
+  let tupletGroup: number[] = [];
+  function flushTupletGroup() {
+    let groupStart = 0;
+    let groupTicks = 0;
+    for (let index = 0; index < tupletGroup.length; index += 1) {
+      groupTicks += annotated[tupletGroup[index] ?? -1]?.ticks ?? 0;
+      if (groupTicks % DIVISIONS !== 0 || index - groupStart < 1) continue;
+      const group = tupletGroup.slice(groupStart, index + 1);
+      const first = annotated[group[0] ?? -1];
+      const last = annotated[group.at(-1) ?? -1];
+      if (first && last) {
+        first.tuplet = "start";
+        first.tupletBracket = !group.every(
+          (itemIndex) => (annotated[itemIndex]?.beams?.length ?? 0) > 0,
+        );
+        last.tuplet = "stop";
+      }
+      groupStart = index + 1;
+      groupTicks = 0;
+    }
+    tupletGroup = [];
+  }
+  annotated.forEach((item, index) => {
+    if (noteType(item.ticks).actual === 3) tupletGroup.push(index);
+    else flushTupletGroup();
+  });
+  flushTupletGroup();
+  return annotated;
+}
+
 function itemXml(item: SymbolicItem): string {
   const notation = noteType(item.ticks);
   const timeModification = notation.actual
     ? `<time-modification><actual-notes>${notation.actual}</actual-notes><normal-notes>${notation.normal}</normal-notes></time-modification>`
     : "";
   const ties = `${item.tieStop ? '<tie type="stop"/>' : ""}${item.tieStart ? '<tie type="start"/>' : ""}`;
-  const tiedNotations =
-    item.tieStart || item.tieStop
-      ? `<notations>${item.tieStop ? '<tied type="stop"/>' : ""}${item.tieStart ? '<tied type="start"/>' : ""}</notations>`
-      : "";
-  return `<note>${item.midi === null ? "<rest/>" : pitchXml(item.midi)}<duration>${item.ticks}</duration><voice>1</voice><type>${notation.type}</type>${notation.dotted ? "<dot/>" : ""}${timeModification}${ties}${tiedNotations}</note>`;
+  const beams = (item.beams ?? [])
+    .map((value, index) => `<beam number="${index + 1}">${value}</beam>`)
+    .join("");
+  const notationItems = `${item.tieStop ? '<tied type="stop"/>' : ""}${item.tieStart ? '<tied type="start"/>' : ""}${item.tuplet ? `<tuplet type="${item.tuplet}"${item.tuplet === "start" ? ` bracket="${item.tupletBracket ? "yes" : "no"}" show-number="actual"` : ""}/>` : ""}`;
+  const notations = notationItems
+    ? `<notations>${notationItems}</notations>`
+    : "";
+  return `<note>${item.midi === null ? "<rest/>" : pitchXml(item.midi)}<duration>${item.ticks}</duration>${ties}<voice>1</voice><type>${notation.type}</type>${notation.dotted ? "<dot/>" : ""}${timeModification}${beams}${notations}</note>`;
 }
 
 export function buildLocalMusicXml(
@@ -322,17 +575,18 @@ export function buildLocalMusicXml(
     .map((items, index) => {
       const attributes =
         index === 0
-          ? `<attributes><divisions>${DIVISIONS}</divisions><key><fifths>0</fifths></key><time><beats>4</beats><beat-type>4</beat-type></time><clef><sign>G</sign><line>2</line></clef></attributes><direction placement="above"><direction-type><words>Local browser transcription · review required</words></direction-type><sound tempo="${bpm}"/></direction>`
+          ? `<attributes><divisions>${DIVISIONS}</divisions><key><fifths>0</fifths></key><time><beats>4</beats><beat-type>4</beat-type></time><clef><sign>G</sign><line>2</line></clef></attributes><direction placement="above"><direction-type><metronome><beat-unit>quarter</beat-unit><per-minute>${bpm}</per-minute></metronome></direction-type><sound tempo="${bpm}"/></direction>`
           : "";
-      return `<measure number="${index + 1}">${attributes}${items.map(itemXml).join("")}</measure>`;
+      return `<measure number="${index + 1}">${attributes}${annotateRhythm(items).map(itemXml).join("")}</measure>`;
     })
     .join("");
-  return `<?xml version="1.0" encoding="UTF-8" standalone="no"?><score-partwise version="4.0"><work><work-title>${escapeXml(title)}</work-title></work><identification><creator type="software">Frasi local monophonic autocorrelation baseline</creator><miscellaneous><miscellaneous-field name="scope">Real browser-side pitch analysis; rhythm is estimated and requires review.</miscellaneous-field></miscellaneous></identification><part-list><score-part id="P1"><part-name>Concert Pitch</part-name></score-part></part-list><part id="P1">${measures}</part></score-partwise>`;
+  return `<?xml version="1.0" encoding="UTF-8" standalone="no"?><score-partwise version="4.0"><work><work-title>${escapeXml(title)}</work-title></work><identification><creator type="software">Frasi browser transcription · Spotify Basic Pitch</creator><miscellaneous><miscellaneous-field name="scope">Machine-learned browser transcription of the selected region; rhythm and lead-line extraction remain reviewable.</miscellaneous-field></miscellaneous></identification><part-list><score-part id="P1"><part-name>Concert Pitch</part-name></score-part></part-list><part id="P1">${measures}</part></score-partwise>`;
 }
 
 export async function transcribeAudioLocally(
   file: File,
   onProgress: (stage: string, progress: number) => void = () => undefined,
+  selection: { startSeconds?: number; endSeconds?: number } = {},
 ): Promise<{ musicXml: string; noteCount: number; bpm: number }> {
   onProgress("decoding_audio", 0.08);
   const context = new AudioContext();
@@ -342,36 +596,31 @@ export async function transcribeAudioLocally(
   } finally {
     await context.close();
   }
-  const audio = downmixAndResample(decoded);
-  const observations: Array<PitchEstimate & { time: number }> = [];
-  const frameCount = Math.max(
-    0,
-    Math.floor((audio.length - FRAME_SIZE) / HOP_SIZE),
-  );
-  onProgress("tracking_pitch", 0.18);
-  for (let frameIndex = 0; frameIndex <= frameCount; frameIndex += 1) {
-    const start = frameIndex * HOP_SIZE;
-    const estimate = detectPitch(
-      audio.subarray(start, start + FRAME_SIZE),
-      TARGET_SAMPLE_RATE,
-    );
-    if (estimate)
-      observations.push({ ...estimate, time: start / TARGET_SAMPLE_RATE });
-    if (frameIndex % 24 === 0) {
-      onProgress(
-        "tracking_pitch",
-        0.18 + (frameIndex / Math.max(1, frameCount)) * 0.58,
-      );
-      await new Promise<void>((resolve) =>
-        requestAnimationFrame(() => resolve()),
-      );
-    }
+  const startSeconds = selection.startSeconds ?? 0;
+  const endSeconds = selection.endSeconds ?? decoded.duration;
+  if (
+    !Number.isFinite(startSeconds) ||
+    !Number.isFinite(endSeconds) ||
+    startSeconds < 0 ||
+    endSeconds <= startSeconds ||
+    endSeconds > decoded.duration + 0.05
+  ) {
+    throw new Error("The selected transcription range is invalid.");
   }
-  onProgress("interpreting_rhythm", 0.82);
-  const notes = observationsToNotes(observations);
+  const audio = downmixAndResampleSelection(
+    decoded,
+    startSeconds,
+    Math.min(endSeconds, decoded.duration),
+  );
+  onProgress("loading_pitch_model", 0.12);
+  const candidates = await transcribeWithBasicPitch(audio, (progress) =>
+    onProgress("tracking_pitch", 0.15 + progress * 0.65),
+  );
+  onProgress("extracting_lead_line", 0.82);
+  const notes = selectMelodicLine(candidates);
   if (!notes.length)
     throw new Error(
-      "No stable monophonic phrase was detected. Try a clearer solo or a WAV recording.",
+      "No stable lead line was detected in that selection. Choose a clearer solo passage or a more isolated recording.",
     );
   const bpm = estimateTempo(notes);
   const title = file.name.replace(/\.[^.]+$/, "") || "Local transcription";

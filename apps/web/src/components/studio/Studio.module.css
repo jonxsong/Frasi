@@ -468,7 +468,9 @@
 
 .dialog {
   position: relative;
-  width: min(560px, 100%);
+  width: min(680px, 100%);
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
   padding: 32px;
   border: 1px solid var(--line-strong);
   border-radius: 18px;
@@ -672,6 +674,139 @@
   margin: 14px 0 0;
   color: var(--danger);
   font-size: 13px;
+}
+
+.selectionEditor {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #101217;
+}
+
+.selectionFileRow {
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.selectionFileRow > span:nth-child(2) {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.selectionFileRow strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.selectionFileRow small,
+.selectionHint {
+  color: var(--text-muted);
+}
+
+.selectionFileRow button,
+.selectionTimes button {
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: #191c22;
+  color: #fff;
+  cursor: pointer;
+}
+
+.selectionAudio {
+  width: 100%;
+  height: 42px;
+}
+
+.selectionSummary {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 9px;
+  background: rgba(124, 92, 255, 0.1);
+}
+
+.selectionSummary strong {
+  color: #fff;
+  font-size: 15px;
+}
+
+.selectionSummary span {
+  color: #c7b8ff;
+  font-size: 12px;
+}
+
+.selectionSliders {
+  display: grid;
+  gap: 8px;
+}
+
+.selectionSliders label {
+  display: grid;
+  grid-template-columns: 42px 1fr;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.selectionSliders input {
+  width: 100%;
+  accent-color: #9d7cff;
+}
+
+.selectionTimes {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr auto;
+  align-items: end;
+  gap: 8px;
+}
+
+.selectionTimes label {
+  display: grid;
+  gap: 6px;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.selectionTimes input {
+  width: 100%;
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: #0b0d11;
+  color: #fff;
+}
+
+.selectionHint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.transcribeSelectionButton {
+  min-height: 46px;
+  border: 0;
+  border-radius: 9px;
+  background: #7c5cff;
+  color: #fff;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.transcribeSelectionButton:disabled {
+  cursor: wait;
+  opacity: 0.7;
 }
 
 .waveformRow {
@@ -1636,6 +1771,28 @@
 }
 
 @media (max-width: 560px) {
+  .dialogBackdrop {
+    padding: 10px;
+  }
+
+  .dialog {
+    max-height: calc(100vh - 20px);
+    padding: 22px 16px;
+  }
+
+  .selectionTimes {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .selectionTimes button {
+    grid-row: 2;
+  }
+
+  .selectionSummary {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
   .header {
     height: 58px;
     padding-inline: 14px;
