@@ -1,0 +1,37 @@
+# JavaScript
+node_modules/
+.next/
+out/
+dist/
+coverage/
+.turbo/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.venv/
+*.egg-info/
+
+# Runtime data
+.env
+.env.*
+!.env.example
+data/
+uploads/
+artifacts/
+*.sqlite3
+
+# Editors and operating systems
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Sites and local tooling
+.openai/.credentials*
+*.tgz
+playwright-report/
+test-results/
