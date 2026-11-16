@@ -303,15 +303,174 @@
   font-size: 13px;
 }
 
-.placeholderDialog {
+.dialogBackdrop {
   position: fixed;
   z-index: 50;
-  inset: 50% auto auto 50%;
-  transform: translate(-50%, -50%);
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(4, 5, 11, 0.72);
+  backdrop-filter: blur(9px);
+}
+
+.dialog {
+  position: relative;
+  width: min(560px, 100%);
   padding: 32px;
   border: 1px solid var(--line-strong);
-  border-radius: 16px;
-  background: #171a28;
+  border-radius: 18px;
+  background: linear-gradient(145deg, #191c2c, #11131f);
+  box-shadow: 0 34px 90px rgba(0, 0, 0, 0.56);
+}
+
+.dialog h2 {
+  margin: 4px 0 8px;
+  font: 30px/1.2 var(--serif);
+}
+
+.eyebrow {
+  margin: 0;
+  color: var(--violet-light);
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.18em;
+}
+
+.dialogIntro {
+  margin: 0 44px 24px 0;
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.dialogClose {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.dialogTabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  margin-bottom: 16px;
+  padding: 4px;
+  border-radius: 11px;
+  background: #0d0f1a;
+}
+
+.dialogTab,
+.dialogTabActive {
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.dialogTabActive {
+  background: #24263a;
+  color: #fff;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.32);
+}
+
+.srFileInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.dropZone {
+  width: 100%;
+  min-height: 180px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  border: 1px dashed rgba(199, 166, 235, 0.5);
+  border-radius: 14px;
+  background: rgba(118, 73, 169, 0.07);
+  cursor: pointer;
+}
+
+.dropZone:hover {
+  border-color: var(--violet-light);
+  background: rgba(118, 73, 169, 0.12);
+}
+
+.dropZone small,
+.linkForm small {
+  color: var(--text-muted);
+}
+
+.dropIcon {
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #9c5be0, #6234ad);
+}
+
+.linkForm {
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: rgba(8, 10, 17, 0.45);
+}
+
+.linkForm label {
+  display: block;
+  margin-bottom: 9px;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.linkForm > div {
+  display: flex;
+  margin-bottom: 10px;
+}
+
+.linkForm input {
+  min-width: 0;
+  flex: 1;
+  height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 9px 0 0 9px;
+  background: #0c0e18;
+  color: #fff;
+}
+
+.linkForm button {
+  padding-inline: 15px;
+  border: 0;
+  border-radius: 0 9px 9px 0;
+  background: #7840c5;
+  cursor: pointer;
+}
+
+.formError {
+  margin: 14px 0 0;
+  color: var(--danger);
+  font-size: 13px;
 }
 
 @media (max-width: 1000px) {

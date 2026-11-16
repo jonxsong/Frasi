@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useProjectActions } from "@/hooks/useProjectActions";
 import { Header } from "./Header";
+import { NewTranscriptionDialog } from "./NewTranscriptionDialog";
 import { ProjectHeader } from "./ProjectHeader";
 import styles from "./Studio.module.css";
 
@@ -28,12 +29,13 @@ export function Studio() {
           onShare={actions.share}
           onExport={actions.exportMusicXml}
         />
-        {newProjectOpen && (
-          <button className={styles.placeholderDialog} onClick={() => setNewProjectOpen(false)}>
-            New transcription workflow is opening…
-          </button>
-        )}
       </div>
+      {newProjectOpen && (
+        <NewTranscriptionDialog
+          onClose={() => setNewProjectOpen(false)}
+          onNotify={notify}
+        />
+      )}
       {toast && (
         <div className={styles.toast} role="status">
           {toast}
