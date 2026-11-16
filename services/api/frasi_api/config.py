@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     api_prefix: str = "/api/v1"
     database_url: str = "sqlite+aiosqlite:///./frasi.sqlite3"
     redis_url: str = "redis://localhost:6379/0"
+    task_queue: str = "transcription"
     storage_backend: str = "filesystem"
     storage_root: Path = Path("./data/assets")
     s3_endpoint: str | None = None

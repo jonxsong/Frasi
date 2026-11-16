@@ -8,6 +8,7 @@ from sqlalchemy.pool import StaticPool
 from frasi_api import models  # noqa: F401
 from frasi_api.database import Base, get_session
 from frasi_api.main import app
+from frasi_api.models import Instrument
 
 
 @pytest_asyncio.fixture
@@ -20,6 +21,30 @@ async def client() -> AsyncIterator[AsyncClient]:
     session_factory = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
     async with engine.begin() as connection:
         await connection.run_sync(Base.metadata.create_all)
+    async with session_factory() as seed_session:
+        seed_session.add_all(
+            [
+                Instrument(
+                    id="tenor_saxophone",
+                    display_name="Tenor Saxophone",
+                    transposition_semitones=14,
+                    clef="treble",
+                    minimum_concert_midi=44,
+                    maximum_concert_midi=76,
+                    enabled=True,
+                ),
+                Instrument(
+                    id="trumpet",
+                    display_name="B-flat Trumpet",
+                    transposition_semitones=2,
+                    clef="treble",
+                    minimum_concert_midi=52,
+                    maximum_concert_midi=82,
+                    enabled=True,
+                ),
+            ]
+        )
+        await seed_session.commit()
 
     async def override_session() -> AsyncIterator[AsyncSession]:
         async with session_factory() as session:
