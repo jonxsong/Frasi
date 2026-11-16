@@ -29,6 +29,16 @@ interface StudioState {
   audioName: string | null;
   isDemo: boolean;
   savedAt: number | null;
+  recordingId: string | null;
+  recordingSource: "upload" | "youtube" | "spotify" | null;
+  projectId: string | null;
+  revisionId: string | null;
+  jobId: string | null;
+  jobStatus: "idle" | "queued" | "processing" | "succeeded" | "failed";
+  jobStage: string | null;
+  jobProgress: number;
+  projectTitle: string | null;
+  projectArtist: string | null;
   setWorkspace: (workspace: Workspace) => void;
   setPlaying: (playing: boolean) => void;
   togglePlaying: () => void;
@@ -46,6 +56,19 @@ interface StudioState {
   setPlaybackMode: (mode: PlaybackMode) => void;
   setAudio: (url: string, name: string, duration: number) => void;
   setMusicXml: (musicXml: string) => void;
+  setRecording: (
+    id: string,
+    source: "upload" | "youtube" | "spotify",
+    title: string,
+    artist: string | null,
+  ) => void;
+  setRemoteProject: (projectId: string, jobId: string) => void;
+  setJob: (
+    status: StudioState["jobStatus"],
+    stage: string | null,
+    progress: number,
+  ) => void;
+  setRevision: (revisionId: string, musicXml: string) => void;
   markSaved: () => void;
   resetProject: () => void;
 }
@@ -72,6 +95,16 @@ const initialState = {
   audioName: null,
   isDemo: true,
   savedAt: null,
+  recordingId: null,
+  recordingSource: null,
+  projectId: null,
+  revisionId: null,
+  jobId: null,
+  jobStatus: "idle" as const,
+  jobStage: null,
+  jobProgress: 0,
+  projectTitle: null,
+  projectArtist: null,
 };
 
 export const useStudioStore = create<StudioState>()(
@@ -106,6 +139,13 @@ export const useStudioStore = create<StudioState>()(
           isPlaying: false,
         }),
       setMusicXml: (musicXml) => set({ musicXml, isDemo: false }),
+      setRecording: (recordingId, recordingSource, projectTitle, projectArtist) =>
+        set({ recordingId, recordingSource, projectTitle, projectArtist }),
+      setRemoteProject: (projectId, jobId) =>
+        set({ projectId, jobId, jobStatus: "queued", jobStage: "waiting_for_worker", jobProgress: 0 }),
+      setJob: (jobStatus, jobStage, jobProgress) => set({ jobStatus, jobStage, jobProgress }),
+      setRevision: (revisionId, musicXml) =>
+        set({ revisionId, musicXml, isDemo: false, jobStatus: "succeeded", jobProgress: 1 }),
       markSaved: () => set({ savedAt: Date.now() }),
       resetProject: () => set({ ...initialState, savedAt: null }),
     }),

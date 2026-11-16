@@ -1,6 +1,7 @@
 import { CircleUserRound } from "lucide-react";
 import { Brand } from "./Brand";
 import { useStudioStore, type Workspace } from "@/store/studio";
+import { useAuthStore } from "@/store/auth";
 import styles from "./Studio.module.css";
 
 const nav: Array<{ id: Workspace; label: string }> = [
@@ -10,9 +11,14 @@ const nav: Array<{ id: Workspace; label: string }> = [
   { id: "explore", label: "Explore" },
 ];
 
-export function Header() {
+interface HeaderProps {
+  onAccount: () => void;
+}
+
+export function Header({ onAccount }: HeaderProps) {
   const workspace = useStudioStore((state) => state.workspace);
   const setWorkspace = useStudioStore((state) => state.setWorkspace);
+  const user = useAuthStore((state) => state.user);
 
   return (
     <header className={styles.header}>
@@ -30,8 +36,13 @@ export function Header() {
           </button>
         ))}
       </nav>
-      <button className={styles.profileButton} aria-label="Open account menu" type="button">
-        <CircleUserRound size={21} strokeWidth={1.5} />
+      <button
+        className={user ? styles.profileButtonActive : styles.profileButton}
+        aria-label={user ? `Account for ${user.display_name}` : "Open account menu"}
+        onClick={onAccount}
+        type="button"
+      >
+        {user ? user.display_name.slice(0, 1).toUpperCase() : <CircleUserRound size={21} strokeWidth={1.5} />}
       </button>
     </header>
   );

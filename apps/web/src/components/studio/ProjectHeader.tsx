@@ -13,6 +13,11 @@ export function ProjectHeader({ onNew, onSave, onShare, onExport }: ProjectHeade
   const audioName = useStudioStore((state) => state.audioName);
   const isDemo = useStudioStore((state) => state.isDemo);
   const savedAt = useStudioStore((state) => state.savedAt);
+  const projectTitle = useStudioStore((state) => state.projectTitle);
+  const projectArtist = useStudioStore((state) => state.projectArtist);
+  const jobStatus = useStudioStore((state) => state.jobStatus);
+  const jobStage = useStudioStore((state) => state.jobStage);
+  const jobProgress = useStudioStore((state) => state.jobProgress);
 
   return (
     <section className={styles.projectHeader} aria-label="Current transcription">
@@ -23,11 +28,14 @@ export function ProjectHeader({ onNew, onSave, onShare, onExport }: ProjectHeade
       </div>
       <div className={styles.trackCopy}>
         <div className={styles.trackTitleRow}>
-          <h1>{audioName ? audioName.replace(/\.[^.]+$/, "") : "Midnight Language — Tenor Solo"}</h1>
+          <h1>{projectTitle ?? (audioName ? audioName.replace(/\.[^.]+$/, "") : "Midnight Language — Tenor Solo")}</h1>
           {isDemo && <span className={styles.demoBadge}>DEMO SCORE</span>}
+          {["queued", "processing"].includes(jobStatus) && (
+            <span className={styles.jobBadge}>{Math.round(jobProgress * 100)}% · {jobStage?.replaceAll("_", " ")}</span>
+          )}
         </div>
         <p>
-          {audioName ? "Your authorized audio" : "Frasi Session Players"}
+          {projectArtist ?? (audioName ? "Your authorized audio" : "Frasi Session Players")}
           <span>·</span>
           {audioName ? "Uploaded recording" : "2026"}
           <span>·</span>

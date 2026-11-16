@@ -1,6 +1,14 @@
 import { useRef, useState } from "react";
 import { FileAudio, Link2, Upload, X } from "lucide-react";
 import { useStudioStore } from "@/store/studio";
+import { useAuthStore } from "@/store/auth";
+import {
+  ApiError,
+  apiFetch,
+  type JobResponse,
+  type ProjectResponse,
+  type RecordingResponse,
+} from "@/lib/api";
 import styles from "./Studio.module.css";
 
 const ACCEPTED_TYPES = ["audio/wav", "audio/mpeg", "audio/flac", "audio/mp4", "audio/ogg", "audio/x-m4a"];
@@ -24,6 +32,12 @@ function readDuration(url: string): Promise<number> {
 
 export function NewTranscriptionDialog({ onClose, onNotify }: NewTranscriptionDialogProps) {
   const setAudio = useStudioStore((state) => state.setAudio);
+  const instrument = useStudioStore((state) => state.instrument);
+  const existingRecordingId = useStudioStore((state) => state.recordingId);
+  const recordingSource = useStudioStore((state) => state.recordingSource);
+  const setRecording = useStudioStore((state) => state.setRecording);
+  const setRemoteProject = useStudioStore((state) => state.setRemoteProject);
+  const accessToken = useAuthStore((state) => state.accessToken);
   const [tab, setTab] = useState<"upload" | "link">("upload");
   const [link, setLink] = useState("");
   const [busy, setBusy] = useState(false);
@@ -46,17 +60,52 @@ export function NewTranscriptionDialog({ onClose, onNotify }: NewTranscriptionDi
       const duration = await readDuration(url);
       if (!Number.isFinite(duration) || duration <= 0) throw new Error("Invalid audio duration.");
       setAudio(url, file.name, duration);
-      onNotify("Audio loaded — drag the A/B markers to choose your phrase");
+      if (!accessToken) {
+        onNotify("Audio loaded locally — sign in to run the transcription pipeline");
+        onClose();
+        return;
+      }
+      const form = new FormData();
+      form.append("file", file);
+      form.append("title", file.name.replace(/\.[^.]+$/, ""));
+      const recording = await apiFetch<RecordingResponse>(
+        existingRecordingId && recordingSource && recordingSource !== "upload"
+          ? `/api/v1/recordings/${existingRecordingId}/audio`
+          : "/api/v1/recordings",
+        { method: "POST", body: form },
+      );
+      setRecording(recording.id, recording.source_kind, recording.title, recording.artist);
+      const project = await apiFetch<ProjectResponse>("/api/v1/transcriptions", {
+        method: "POST",
+        body: JSON.stringify({
+          recording_id: recording.id,
+          title: `${recording.title} — phrase`,
+          instrument_id: instrument,
+          segment_start_seconds: 0,
+          segment_end_seconds: Math.min(duration, 30),
+        }),
+      });
+      const job = await apiFetch<JobResponse>(`/api/v1/transcriptions/${project.id}/process`, {
+        method: "POST",
+        headers: { "Idempotency-Key": crypto.randomUUID() },
+      });
+      setRemoteProject(project.id, job.id);
+      onNotify("Transcription queued — real pitch and rhythm analysis is running");
       onClose();
     } catch (cause) {
-      URL.revokeObjectURL(url);
-      setError(cause instanceof Error ? cause.message : "Unable to read this audio file.");
+      setError(
+        cause instanceof ApiError
+          ? cause.message
+          : cause instanceof Error
+            ? cause.message
+            : "Unable to read this audio file.",
+      );
     } finally {
       setBusy(false);
     }
   }
 
-  function handleLink() {
+  async function handleLink() {
     setError(null);
     let parsed: URL;
     try {
@@ -70,8 +119,25 @@ export function NewTranscriptionDialog({ onClose, onNotify }: NewTranscriptionDi
       setError("Only official YouTube and Spotify links are supported.");
       return;
     }
-    onNotify("Link saved for metadata — upload authorized audio to run transcription");
-    onClose();
+    if (!accessToken) {
+      setError("Sign in first so Frasi can save the official reference to your private studio.");
+      return;
+    }
+    setBusy(true);
+    try {
+      const provider = parsed.hostname === "open.spotify.com" ? "spotify" : "youtube";
+      const recording = await apiFetch<RecordingResponse>("/api/v1/recordings/external", {
+        method: "POST",
+        body: JSON.stringify({ provider, url: link }),
+      });
+      setRecording(recording.id, recording.source_kind, recording.title, recording.artist);
+      setTab("upload");
+      onNotify("Official metadata linked — now attach audio you are authorized to analyze");
+    } catch (cause) {
+      setError(cause instanceof ApiError ? cause.message : "Unable to add this reference.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -148,7 +214,9 @@ export function NewTranscriptionDialog({ onClose, onNotify }: NewTranscriptionDi
                 placeholder="https://youtube.com/watch?v=…"
                 type="url"
               />
-              <button onClick={handleLink} type="button">Add link</button>
+              <button onClick={() => void handleLink()} disabled={busy} type="button">
+                {busy ? "Checking…" : "Add link"}
+              </button>
             </div>
             <small>
               Frasi never rips protected audio. Upload a recording you are authorized to analyze.
