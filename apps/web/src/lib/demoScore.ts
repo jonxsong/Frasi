@@ -15,7 +15,7 @@ const phrase: DemoMeasure[] = [
   {
     chord: "Dm7",
     notes: [
-      { step: "F", octave: 4, duration: 2, type: "quarter" },
+      { step: "C", octave: 4, duration: 2, type: "quarter" },
       { step: "A", octave: 4, duration: 1, type: "eighth" },
       { step: "C", octave: 5, duration: 1, type: "eighth" },
       { step: "D", octave: 5, duration: 2, type: "quarter" },
@@ -25,7 +25,7 @@ const phrase: DemoMeasure[] = [
   {
     chord: "G7",
     notes: [
-      { step: "F", octave: 5, duration: 1, type: "eighth" },
+      { step: "C", octave: 6, duration: 1, type: "eighth" },
       { step: "D", octave: 5, duration: 1, type: "eighth" },
       { step: "B", octave: 4, duration: 2, type: "quarter" },
       { step: "A", octave: 4, duration: 1, type: "eighth" },

@@ -66,10 +66,11 @@ describe("streaming reference validation", () => {
 
     const session = await startTabAudioCapture("spotify-capture.webm", 5_000);
     session.stop();
-    const file = await session.result;
+    const { file, durationSeconds } = await session.result;
 
     expect(file.name).toBe("spotify-capture.webm");
     expect(file.size).toBeGreaterThan(0);
+    expect(durationSeconds).toBeGreaterThan(0);
     expect(track.stop).toHaveBeenCalled();
     vi.unstubAllGlobals();
   });

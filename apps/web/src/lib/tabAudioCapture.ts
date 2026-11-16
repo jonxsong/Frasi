@@ -6,7 +6,10 @@ export interface StreamingReference {
 }
 
 export interface TabAudioCaptureSession {
-  result: Promise<File>;
+  result: Promise<{
+    file: File;
+    durationSeconds: number;
+  }>;
   stop: () => void;
 }
 
@@ -70,6 +73,7 @@ export async function startTabAudioCapture(
     mimeType ? { mimeType } : undefined,
   );
   const chunks: BlobPart[] = [];
+  let startedAt = 0;
   let timeout = 0;
   let settled = false;
 
@@ -78,7 +82,10 @@ export async function startTabAudioCapture(
     sharedStream.getTracks().forEach((track) => track.stop());
   }
 
-  const result = new Promise<File>((resolve, reject) => {
+  const result = new Promise<{
+    file: File;
+    durationSeconds: number;
+  }>((resolve, reject) => {
     recorder.ondataavailable = (event) => {
       if (event.data.size) chunks.push(event.data);
     };
@@ -102,7 +109,13 @@ export async function startTabAudioCapture(
         );
         return;
       }
-      resolve(new File([blob], filename, { type }));
+      resolve({
+        file: new File([blob], filename, { type }),
+        durationSeconds: Math.max(
+          0.001,
+          (performance.now() - startedAt) / 1_000,
+        ),
+      });
     };
   });
 
@@ -110,6 +123,7 @@ export async function startTabAudioCapture(
     if (recorder.state !== "inactive") recorder.stop();
   };
   audioTrack.addEventListener("ended", stop, { once: true });
+  startedAt = performance.now();
   recorder.start(250);
   timeout = window.setTimeout(stop, maximumMilliseconds);
   return { result, stop };

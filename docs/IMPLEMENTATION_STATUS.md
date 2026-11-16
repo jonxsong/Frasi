@@ -34,7 +34,7 @@ accuracy of a research-grade transcription model.
 | --------------------------------------- | ------------------------------------------------------------------------------ |
 | `pnpm lint`                             | Pass                                                                           |
 | `pnpm typecheck`                        | Pass across three TypeScript workspaces                                        |
-| `pnpm test`                             | 36 tests pass (21 music-core, 15 web)                                          |
+| `pnpm test`                             | 37 tests pass (21 music-core, 16 web)                                          |
 | `pnpm build`                            | Optimized Next.js production build passes                                      |
 | `pnpm --filter @frasi/web test:e2e`     | 7 pass, 3 intentionally skipped (duplicate mobile DSP/capture/resize checks)   |
 | `ruff format --check` and `ruff check`  | 62 files pass                                                                  |

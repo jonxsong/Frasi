@@ -47,13 +47,9 @@ test("loads the demo studio and opens the compliant ingestion flow", async ({
     "aria-selected",
     "true",
   );
-  await expect(
-    page.getByRole("tab", { name: "All 12 Keys" }),
-  ).toHaveCount(0);
+  await expect(page.getByRole("tab", { name: "All 12 Keys" })).toHaveCount(0);
   await expect(page.getByText("Concert Pitch", { exact: true })).toHaveCount(0);
-  await expect(
-    page.getByLabel("Instrument (for playback)"),
-  ).toHaveCount(0);
+  await expect(page.getByLabel("Instrument (for playback)")).toHaveCount(0);
   await expect(
     page.getByRole("switch", { name: "Show Chord Analysis" }),
   ).toHaveCount(0);
@@ -68,10 +64,13 @@ test("loads the demo studio and opens the compliant ingestion flow", async ({
   await expect(score.locator(".ledgerLines path")).not.toHaveCount(0);
   await expect
     .poll(() =>
-      score.locator(".ledgerLines path").first().evaluate((path) => {
-        const style = getComputedStyle(path);
-        return `${style.strokeWidth} ${style.vectorEffect}`;
-      }),
+      score
+        .locator(".ledgerLines path")
+        .first()
+        .evaluate((path) => {
+          const style = getComputedStyle(path);
+          return `${style.strokeWidth} ${style.vectorEffect}`;
+        }),
     )
     .toBe("1.5px non-scaling-stroke");
 
@@ -88,7 +87,7 @@ test("loads the demo studio and opens the compliant ingestion flow", async ({
   await expect(dialog).toBeHidden();
 });
 
-test("requests browser-mediated audio for a streaming reference", async ({
+test("captures and transcribes browser-mediated streaming audio", async ({
   page,
 }, testInfo) => {
   const pageErrors: string[] = [];
@@ -97,12 +96,56 @@ test("requests browser-mediated audio for a streaming reference", async ({
     testInfo.project.name !== "chromium",
     "Tab capture only needs one desktop regression pass.",
   );
-  await page.addInitScript(() => {
+  await page.addInitScript((wavBase64) => {
+    const wav = Uint8Array.from(atob(wavBase64), (character) =>
+      character.charCodeAt(0),
+    );
+    const track = {
+      addEventListener: () => undefined,
+      stop: () => undefined,
+    };
+    class FakeMediaStream {
+      constructor(private readonly tracks = [track]) {}
+      getAudioTracks() {
+        return this.tracks;
+      }
+      getTracks() {
+        return this.tracks;
+      }
+    }
+    class FakeMediaRecorder {
+      static isTypeSupported() {
+        return true;
+      }
+      state: RecordingState = "inactive";
+      mimeType = "audio/wav";
+      ondataavailable: ((event: BlobEvent) => void) | null = null;
+      onerror: (() => void) | null = null;
+      onstop: (() => void) | null = null;
+      start() {
+        this.state = "recording";
+      }
+      stop() {
+        this.state = "inactive";
+        this.ondataavailable?.({
+          data: new Blob([wav], { type: "audio/wav" }),
+        } as BlobEvent);
+        this.onstop?.();
+      }
+    }
+    Object.defineProperty(window, "MediaStream", {
+      configurable: true,
+      value: FakeMediaStream,
+    });
+    Object.defineProperty(window, "MediaRecorder", {
+      configurable: true,
+      value: FakeMediaRecorder,
+    });
     Object.defineProperty(navigator, "mediaDevices", {
       configurable: true,
-      value: { getDisplayMedia: async () => new MediaStream() },
+      value: { getDisplayMedia: async () => new FakeMediaStream() },
     });
-  });
+  }, wavFixture().toString("base64"));
   await page.goto("/");
   await page.getByRole("button", { name: "New Transcription" }).click();
   const dialog = page.getByRole("dialog", { name: "Bring in a recording" });
@@ -113,7 +156,12 @@ test("requests browser-mediated audio for a streaming reference", async ({
   await dialog
     .getByRole("button", { name: "Capture 20 seconds from playing tab" })
     .click();
-  await expect(dialog).toContainText("No tab audio was shared");
+  await dialog.getByRole("button", { name: /Stop & transcribe/ }).click();
+  await expect(dialog).toBeHidden({ timeout: 30_000 });
+  await expect(page.getByRole("heading", { level: 1 })).toContainText(
+    "spotify-tab-capture",
+  );
+  await expect(page.getByText(/Local transcription ready/)).toBeVisible();
   expect(pageErrors).toEqual([]);
 });
 

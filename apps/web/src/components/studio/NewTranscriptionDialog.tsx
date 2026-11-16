@@ -88,7 +88,11 @@ export function NewTranscriptionDialog({
 
   async function handleFile(
     file: File,
-    options: { skipValidation?: boolean; forceLocal?: boolean } = {},
+    options: {
+      skipValidation?: boolean;
+      forceLocal?: boolean;
+      durationSeconds?: number;
+    } = {},
   ) {
     setError(null);
     if (
@@ -106,7 +110,7 @@ export function NewTranscriptionDialog({
     setBusy(true);
     const url = URL.createObjectURL(file);
     try {
-      const duration = await readDuration(url);
+      const duration = options.durationSeconds ?? (await readDuration(url));
       if (!Number.isFinite(duration) || duration <= 0)
         throw new Error("Invalid audio duration.");
       setAudio(url, file.name, duration);
@@ -207,12 +211,16 @@ export function NewTranscriptionDialog({
         () => setCaptureSeconds((seconds) => Math.min(20, seconds + 1)),
         1_000,
       );
-      const file = await session.result;
+      const { file, durationSeconds } = await session.result;
       window.clearInterval(captureTimerRef.current);
       captureRef.current = null;
       if (!mountedRef.current) return;
       setCapturing(false);
-      await handleFile(file, { skipValidation: true, forceLocal: true });
+      await handleFile(file, {
+        skipValidation: true,
+        forceLocal: true,
+        durationSeconds,
+      });
     } catch (cause) {
       window.clearInterval(captureTimerRef.current);
       captureRef.current = null;
