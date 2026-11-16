@@ -158,6 +158,10 @@ The local Compose topology is production-shaped, but a public deployment also re
 PostgreSQL, Redis, private object storage, worker compute, TLS, backups, monitoring, and secret
 management. Follow [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
 
+For a Sites release, run the root `pnpm build` immediately before packaging. That command creates
+the export in `/out`; the container-only `pnpm --filter @frasi/web build` does not refresh that
+deployment artifact.
+
 ## Repository map
 
 ```text
