@@ -1,0 +1,24 @@
+{
+  "id": "hey-lock-83-103",
+  "description": "Canonical Frasi transcription regression window: 20 seconds starting at 1:23.",
+  "source": {
+    "fileName": "Hey Lock.mp3",
+    "sha256": "66e34c3472f9b98f52edd323b54afad2ec3f6ac6c913f9ced0048ebf70c61b3c"
+  },
+  "selection": {
+    "startSeconds": 83,
+    "endSeconds": 103,
+    "durationSeconds": 20
+  },
+  "expected": {
+    "bpm": 123,
+    "detectedLeadNotes": 85,
+    "measureCount": 10,
+    "musicXmlNoteElements": 101,
+    "pitchedNoteElements": 94,
+    "tripletGroups": 5,
+    "beamElements": 59,
+    "tieElements": 18,
+    "symbolicSha256": "34fd80d84bf16a6dc212f109976aa008b3974e554857f43124f67703246282ec"
+  }
+}

@@ -30,21 +30,22 @@ accuracy of a research-grade transcription model.
 
 ## Verification ledger
 
-| Check                                   | Result observed 2026-11-16                                                     |
-| --------------------------------------- | ------------------------------------------------------------------------------ |
-| `pnpm lint`                             | Pass                                                                           |
-| `pnpm typecheck`                        | Pass across three TypeScript workspaces                                        |
-| `pnpm test`                             | 39 tests pass (21 music-core, 18 web)                                          |
-| `pnpm build`                            | Optimized Next.js production build passes                                      |
-| `pnpm --filter @frasi/web test:e2e`     | 7 pass, 3 intentionally skipped (duplicate mobile DSP/capture/resize checks)   |
-| `ruff format --check` and `ruff check`  | 62 files pass                                                                  |
-| strict `mypy`                           | 43 Python source files pass                                                    |
-| `pytest -q`                             | 22/22 API, worker, harmony, export, practice and DSP tests pass                |
-| synthetic transcription benchmark       | 16/16 expected events matched; precision 0.5926, recall 1.0000                 |
-| `docker compose config --quiet`         | Pass                                                                           |
-| API/worker/web image builds             | Pass on Python 3.12 and Node 22 production images                              |
-| full-stack health                       | PostgreSQL, Redis, RustFS, API, worker and web healthy together                |
-| `infrastructure/scripts/smoke_test.ps1` | Auth → encrypted upload → job → 8 notes → immutable revision → MusicXML passes |
+| Check                                    | Result observed 2026-11-16                                                     |
+| ---------------------------------------- | ------------------------------------------------------------------------------ |
+| `pnpm lint`                              | Pass                                                                           |
+| `pnpm typecheck`                         | Pass across three TypeScript workspaces                                        |
+| `pnpm test`                              | 39 tests pass (21 music-core, 18 web)                                          |
+| `pnpm build`                             | Optimized Next.js production build passes                                      |
+| `pnpm --filter @frasi/web test:e2e`      | 8 pass, 4 intentionally skipped (duplicate mobile ML/capture/resize checks)    |
+| `pnpm --filter @frasi/web test:baseline` | Canonical `Hey Lock.mp3` 1:23–1:43 symbolic regression passes locally          |
+| `ruff format --check` and `ruff check`   | 62 files pass                                                                  |
+| strict `mypy`                            | 43 Python source files pass                                                    |
+| `pytest -q`                              | 22/22 API, worker, harmony, export, practice and DSP tests pass                |
+| synthetic transcription benchmark        | 16/16 expected events matched; precision 0.5926, recall 1.0000                 |
+| `docker compose config --quiet`          | Pass                                                                           |
+| API/worker/web image builds              | Pass on Python 3.12 and Node 22 production images                              |
+| full-stack health                        | PostgreSQL, Redis, RustFS, API, worker and web healthy together                |
+| `infrastructure/scripts/smoke_test.ps1`  | Auth → encrypted upload → job → 8 notes → immutable revision → MusicXML passes |
 
 ## Scope and known limitations
 

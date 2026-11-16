@@ -13,7 +13,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run src",
     "test:unit": "vitest run src",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:baseline": "playwright test e2e/hey-lock-baseline.spec.ts --project=chromium"
   },
   "dependencies": {
     "@frasi/music-core": "workspace:*",
