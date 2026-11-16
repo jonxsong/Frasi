@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 
+from .analysis import router as analysis_router
 from .auth import router as auth_router
 from .exports import router as exports_router
 from .health import router as health_router
@@ -14,3 +15,4 @@ api_router.include_router(recordings_router)
 api_router.include_router(transcriptions_router)
 api_router.include_router(scores_router)
 api_router.include_router(exports_router)
+api_router.include_router(analysis_router)
