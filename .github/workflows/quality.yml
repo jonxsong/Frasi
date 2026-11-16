@@ -39,6 +39,7 @@ jobs:
       - run: ruff format --check services/api services/worker ml
       - run: ruff check services/api services/worker ml
       - run: pytest -q
+      - run: python ml/benchmarks/run_synthetic.py --check
 
   containers:
     runs-on: ubuntu-latest
