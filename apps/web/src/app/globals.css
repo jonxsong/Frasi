@@ -1,0 +1,91 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #0a0c17;
+  --bg-deep: #080a13;
+  --panel: #111421;
+  --panel-raised: #151827;
+  --panel-soft: rgba(20, 23, 38, 0.82);
+  --line: rgba(211, 215, 236, 0.18);
+  --line-strong: rgba(220, 222, 243, 0.31);
+  --text: #f5f2f7;
+  --text-muted: #aaaabb;
+  --violet: #a968ef;
+  --violet-light: #cda4f7;
+  --violet-deep: #6e37c7;
+  --ivory: #f7f2e9;
+  --ivory-ink: #151216;
+  --amber: #f0ae55;
+  --success: #77c9a5;
+  --danger: #f17e93;
+  --serif: Iowan Old Style, Baskerville, "Times New Roman", serif;
+  --sans: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-height: 100%;
+  background: var(--bg-deep);
+}
+
+body {
+  margin: 0;
+  color: var(--text);
+  font-family: var(--sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+button,
+[role="button"],
+select,
+input[type="range"] {
+  outline: none;
+}
+
+button:focus-visible,
+[role="button"]:focus-visible,
+select:focus-visible,
+input:focus-visible {
+  box-shadow: 0 0 0 2px var(--bg-deep), 0 0 0 4px var(--violet-light);
+}
+
+button {
+  color: inherit;
+}
+
+::selection {
+  background: rgba(169, 104, 239, 0.42);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
