@@ -1,6 +1,4 @@
 import { KeyboardMusic, Minus, Plus } from "lucide-react";
-import { instruments } from "@frasi/music-core";
-import type { InstrumentId } from "@frasi/shared-types";
 import { useStudioStore } from "@/store/studio";
 import styles from "./Studio.module.css";
 
@@ -43,53 +41,24 @@ function Toggle({ label, checked, onChange }: ToggleProps) {
 }
 
 export function ControlSidebar() {
-  const pitchView = useStudioStore((state) => state.pitchView);
   const transposeSemitones = useStudioStore(
     (state) => state.transposeSemitones,
   );
   const transposeKey = useStudioStore((state) => state.transposeKey);
-  const instrument = useStudioStore((state) => state.instrument);
   const speed = useStudioStore((state) => state.speed);
   const loopEnabled = useStudioStore((state) => state.loopEnabled);
-  const chordAnalysis = useStudioStore((state) => state.chordAnalysis);
   const playbackMode = useStudioStore((state) => state.playbackMode);
-  const setPitchView = useStudioStore((state) => state.setPitchView);
   const setTranspose = useStudioStore((state) => state.setTranspose);
-  const setInstrument = useStudioStore((state) => state.setInstrument);
   const setSpeed = useStudioStore((state) => state.setSpeed);
   const setLoopEnabled = useStudioStore((state) => state.setLoopEnabled);
-  const setChordAnalysis = useStudioStore((state) => state.setChordAnalysis);
   const setPlaybackMode = useStudioStore((state) => state.setPlaybackMode);
   const setScoreTab = useStudioStore((state) => state.setScoreTab);
 
   return (
     <aside
       className={styles.controlSidebar}
-      aria-label="Notation and playback controls"
+      aria-label="Playback and transcription controls"
     >
-      <section>
-        <h2>Notation</h2>
-        <div className={styles.segmentedControl}>
-          <button
-            className={
-              pitchView === "concert" ? styles.segmentActive : undefined
-            }
-            onClick={() => setPitchView("concert")}
-            type="button"
-          >
-            Concert Pitch
-          </button>
-          <button
-            className={
-              pitchView === "instrument" ? styles.segmentActive : undefined
-            }
-            onClick={() => setPitchView("instrument")}
-            type="button"
-          >
-            Instrument Pitch
-          </button>
-        </div>
-      </section>
       <section className={styles.controlSection}>
         <label htmlFor="transpose-key">Transpose</label>
         <select
@@ -113,22 +82,6 @@ export function ControlSidebar() {
             ? "Canonical concert score"
             : `${transposeSemitones} semitones from original`}
         </small>
-      </section>
-      <section className={styles.controlSection}>
-        <label htmlFor="instrument">Instrument (for playback)</label>
-        <select
-          id="instrument"
-          value={instrument}
-          onChange={(event) =>
-            setInstrument(event.target.value as InstrumentId)
-          }
-        >
-          {Object.values(instruments).map((item) => (
-            <option key={item.id} value={item.id}>
-              {item.name}
-            </option>
-          ))}
-        </select>
       </section>
       <section className={styles.speedRow}>
         <span>Playback</span>
@@ -156,11 +109,6 @@ export function ControlSidebar() {
         checked={loopEnabled}
         onChange={setLoopEnabled}
       />
-      <Toggle
-        label="Show Chord Analysis"
-        checked={chordAnalysis}
-        onChange={setChordAnalysis}
-      />
       <section className={styles.controlSection}>
         <label htmlFor="playback-mode">Playback source</label>
         <select
@@ -178,7 +126,7 @@ export function ControlSidebar() {
       </section>
       <button
         className={styles.allKeysButton}
-        onClick={() => setScoreTab("keys")}
+        onClick={() => setScoreTab("practice")}
         type="button"
       >
         <KeyboardMusic size={20} /> Practice in All 12 Keys

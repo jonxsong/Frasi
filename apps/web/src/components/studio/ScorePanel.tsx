@@ -8,7 +8,6 @@ import {
   ZoomIn,
   ZoomOut,
 } from "lucide-react";
-import { instruments } from "@frasi/music-core";
 import { transposeMusicXml } from "@/lib/musicXml";
 import { useStudioStore } from "@/store/studio";
 import styles from "./Studio.module.css";
@@ -40,7 +39,6 @@ const tabs = [
   { id: "score" as const, label: "Score" },
   { id: "analysis" as const, label: "Analysis" },
   { id: "practice" as const, label: "Practice" },
-  { id: "keys" as const, label: "All 12 Keys" },
 ];
 
 const practiceKeys = [
@@ -74,12 +72,10 @@ export function ScorePanel({ onNotify }: ScorePanelProps) {
     null,
   );
   const musicXml = useStudioStore((state) => state.musicXml);
-  const pitchView = useStudioStore((state) => state.pitchView);
   const transposeSemitones = useStudioStore(
     (state) => state.transposeSemitones,
   );
   const transposeKey = useStudioStore((state) => state.transposeKey);
-  const instrument = useStudioStore((state) => state.instrument);
   const scoreTab = useStudioStore((state) => state.scoreTab);
   const currentTime = useStudioStore((state) => state.currentTime);
   const selectionStart = useStudioStore((state) => state.selectionStart);
@@ -151,13 +147,9 @@ export function ScorePanel({ onNotify }: ScorePanelProps) {
           spacingStaff: 8,
           spacingSystem: 11,
         });
-        const writtenOffset =
-          pitchView === "instrument"
-            ? instruments[instrument].writtenOffsetSemitones
-            : 0;
         const displayXml = transposeMusicXml(
           musicXml,
-          transposeSemitones + writtenOffset,
+          transposeSemitones,
           transposeKey,
         );
         if (!toolkit.loadData(displayXml))
@@ -191,7 +183,7 @@ export function ScorePanel({ onNotify }: ScorePanelProps) {
       active = false;
       toolkit?.destroy();
     };
-  }, [instrument, musicXml, pitchView, transposeKey, transposeSemitones]);
+  }, [musicXml, transposeKey, transposeSemitones]);
 
   useEffect(() => {
     const measures =

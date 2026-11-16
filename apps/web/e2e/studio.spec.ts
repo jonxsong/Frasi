@@ -47,12 +47,33 @@ test("loads the demo studio and opens the compliant ingestion flow", async ({
     "aria-selected",
     "true",
   );
+  await expect(
+    page.getByRole("tab", { name: "All 12 Keys" }),
+  ).toHaveCount(0);
+  await expect(page.getByText("Concert Pitch", { exact: true })).toHaveCount(0);
+  await expect(
+    page.getByLabel("Instrument (for playback)"),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("switch", { name: "Show Chord Analysis" }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("switch", { name: "Loop Selection (A–B)" }),
+  ).toBeVisible();
   const score = page.locator('section[aria-label="Interactive score"]');
   await expect(score.locator("svg").first()).toBeVisible({ timeout: 20_000 });
   await expect(score).toContainText("C△7");
   await expect(score).toContainText("D−7");
   await expect(score.locator(".harm")).toHaveCount(12);
   await expect(score.locator(".ledgerLines path")).not.toHaveCount(0);
+  await expect
+    .poll(() =>
+      score.locator(".ledgerLines path").first().evaluate((path) => {
+        const style = getComputedStyle(path);
+        return `${style.strokeWidth} ${style.vectorEffect}`;
+      }),
+    )
+    .toBe("1.5px non-scaling-stroke");
 
   await page.getByRole("button", { name: "New Transcription" }).click();
   const dialog = page.getByRole("dialog", { name: "Bring in a recording" });

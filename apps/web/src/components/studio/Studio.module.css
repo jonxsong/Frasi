@@ -2082,6 +2082,13 @@
     min-width 160ms ease;
 }
 
+.scoreSvg :global(.ledgerLines path) {
+  stroke: #111214 !important;
+  stroke-width: 1.5px !important;
+  stroke-linecap: square;
+  vector-effect: non-scaling-stroke;
+}
+
 .scoreResizeHandle {
   position: relative;
   width: 100%;
