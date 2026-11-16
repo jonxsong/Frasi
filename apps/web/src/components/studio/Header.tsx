@@ -2,6 +2,7 @@ import { CircleUserRound } from "lucide-react";
 import { Brand } from "./Brand";
 import { useStudioStore, type Workspace } from "@/store/studio";
 import { useAuthStore } from "@/store/auth";
+import { API_AVAILABLE } from "@/lib/api";
 import styles from "./Studio.module.css";
 
 const nav: Array<{ id: Workspace; label: string }> = [
@@ -41,7 +42,11 @@ export function Header({ onAccount }: HeaderProps) {
       <button
         className={user ? styles.profileButtonActive : styles.profileButton}
         aria-label={
-          user ? `Account for ${user.display_name}` : "Open account menu"
+          user
+            ? `Account for ${user.display_name}`
+            : API_AVAILABLE
+              ? "Open account menu"
+              : "Guest studio information"
         }
         onClick={onAccount}
         type="button"

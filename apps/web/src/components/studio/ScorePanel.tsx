@@ -276,10 +276,28 @@ export function ScorePanel({ onNotify }: ScorePanelProps) {
           <div className={styles.practiceActions}>
             <button
               onClick={() => {
-                if (!projectId)
-                  return onNotify(
-                    "Sign in and transcribe a phrase before logging practice",
+                if (!projectId) {
+                  const sessions = JSON.parse(
+                    localStorage.getItem("frasi-guest-practice") ?? "[]",
+                  ) as unknown[];
+                  sessions.push({
+                    completed_at: new Date().toISOString(),
+                    title: projectTitle ?? "Guest phrase",
+                    duration_seconds: Math.max(
+                      1,
+                      Math.round((Date.now() - practiceStartedAt) / 1000),
+                    ),
+                    tempo_bpm: 140 * speed,
+                    practiced_keys: [...mastered],
+                    mastered_keys: [...mastered],
+                  });
+                  localStorage.setItem(
+                    "frasi-guest-practice",
+                    JSON.stringify(sessions.slice(-100)),
                   );
+                  onNotify("Practice session saved in this browser");
+                  return;
+                }
                 void apiFetch("/api/v1/practice-sessions", {
                   method: "POST",
                   body: JSON.stringify({
@@ -308,13 +326,31 @@ export function ScorePanel({ onNotify }: ScorePanelProps) {
             </button>
             <button
               onClick={() => {
-                if (!projectId || !revisionId)
-                  return onNotify(
-                    "Transcribe a phrase before saving vocabulary",
-                  );
                 const measureCount = new DOMParser()
                   .parseFromString(musicXml, "application/xml")
                   .querySelectorAll("measure").length;
+                if (!projectId || !revisionId) {
+                  const phrases = JSON.parse(
+                    localStorage.getItem("frasi-guest-vocabulary") ?? "[]",
+                  ) as unknown[];
+                  phrases.push({
+                    id: crypto.randomUUID(),
+                    saved_at: new Date().toISOString(),
+                    title: projectTitle ?? "Guest phrase",
+                    music_xml: musicXml,
+                    start_measure: 1,
+                    end_measure: Math.max(1, measureCount),
+                    source_start_seconds: selectionStart,
+                    source_end_seconds: selectionEnd,
+                    tags: ["guest", "practice"],
+                  });
+                  localStorage.setItem(
+                    "frasi-guest-vocabulary",
+                    JSON.stringify(phrases.slice(-100)),
+                  );
+                  onNotify("Phrase saved to your browser vocabulary");
+                  return;
+                }
                 void apiFetch("/api/v1/vocabulary", {
                   method: "POST",
                   body: JSON.stringify({

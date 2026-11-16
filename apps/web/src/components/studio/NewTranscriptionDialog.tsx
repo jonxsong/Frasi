@@ -3,12 +3,14 @@ import { FileAudio, Link2, Upload, X } from "lucide-react";
 import { useStudioStore } from "@/store/studio";
 import { useAuthStore } from "@/store/auth";
 import {
+  API_AVAILABLE,
   ApiError,
   apiFetch,
   type JobResponse,
   type ProjectResponse,
   type RecordingResponse,
 } from "@/lib/api";
+import { transcribeAudioLocally } from "@/lib/localTranscription";
 import styles from "./Studio.module.css";
 
 const ACCEPTED_TYPES = [
@@ -48,6 +50,8 @@ export function NewTranscriptionDialog({
   const recordingSource = useStudioStore((state) => state.recordingSource);
   const setRecording = useStudioStore((state) => state.setRecording);
   const setRemoteProject = useStudioStore((state) => state.setRemoteProject);
+  const setLocalProject = useStudioStore((state) => state.setLocalProject);
+  const setJob = useStudioStore((state) => state.setJob);
   const accessToken = useAuthStore((state) => state.accessToken);
   const [tab, setTab] = useState<"upload" | "link">("upload");
   const [link, setLink] = useState("");
@@ -75,9 +79,14 @@ export function NewTranscriptionDialog({
       if (!Number.isFinite(duration) || duration <= 0)
         throw new Error("Invalid audio duration.");
       setAudio(url, file.name, duration);
-      if (!accessToken) {
+      if (!accessToken || !API_AVAILABLE) {
+        setJob("processing", "decoding_audio", 0.05);
+        const result = await transcribeAudioLocally(file, (stage, progress) =>
+          setJob("processing", stage, progress),
+        );
+        setLocalProject(file.name.replace(/\.[^.]+$/, ""), result.musicXml);
         onNotify(
-          "Audio loaded locally — sign in to run the transcription pipeline",
+          `Local transcription ready — ${result.noteCount} notes at about ${result.bpm} BPM`,
         );
         onClose();
         return;
@@ -123,6 +132,7 @@ export function NewTranscriptionDialog({
       );
       onClose();
     } catch (cause) {
+      setJob("failed", "local_error", 0);
       setError(
         cause instanceof ApiError
           ? cause.message
@@ -154,9 +164,15 @@ export function NewTranscriptionDialog({
       setError("Only official YouTube and Spotify links are supported.");
       return;
     }
+    if (!API_AVAILABLE) {
+      setError(
+        "Streaming references need the cloud service. Audio-file transcription works here without an account.",
+      );
+      return;
+    }
     if (!accessToken) {
       setError(
-        "Sign in first so Frasi can save the official reference to your private studio.",
+        "Upload an audio file for guest transcription, or sign in on a connected deployment to save this reference.",
       );
       return;
     }
@@ -216,8 +232,9 @@ export function NewTranscriptionDialog({
         <p className={styles.eyebrow}>NEW PROJECT</p>
         <h2 id="new-transcription-title">Bring in a recording</h2>
         <p className={styles.dialogIntro}>
-          Upload audio you are permitted to process, or associate an official
-          streaming link for metadata and playback.
+          No account is required. Upload authorized audio for a real local
+          monophonic transcription, or associate an official streaming link when
+          cloud services are connected.
         </p>
         <div
           className={styles.dialogTabs}
@@ -269,9 +286,13 @@ export function NewTranscriptionDialog({
                 <Upload size={22} />
               </span>
               <strong>
-                {busy ? "Reading recording…" : "Choose an audio recording"}
+                {busy
+                  ? "Analyzing the opening phrase…"
+                  : "Choose an audio recording"}
               </strong>
-              <small>WAV, MP3, FLAC, M4A, or OGG · up to 200 MB</small>
+              <small>
+                WAV, MP3, FLAC, M4A, or OGG · first 20 seconds analyzed locally
+              </small>
             </button>
           </>
         ) : (

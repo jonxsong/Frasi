@@ -63,6 +63,7 @@ interface StudioState {
     artist: string | null,
   ) => void;
   setRemoteProject: (projectId: string, jobId: string) => void;
+  setLocalProject: (title: string, musicXml: string) => void;
   setJob: (
     status: StudioState["jobStatus"],
     stage: string | null,
@@ -138,6 +139,16 @@ export const useStudioStore = create<StudioState>()(
           selectionEnd: Math.min(duration, 30),
           isDemo: false,
           isPlaying: false,
+          projectTitle: audioName.replace(/\.[^.]+$/, ""),
+          projectArtist: "Guest browser session",
+          recordingId: null,
+          recordingSource: null,
+          projectId: null,
+          revisionId: null,
+          jobId: null,
+          jobStatus: "idle",
+          jobStage: null,
+          jobProgress: 0,
         }),
       setMusicXml: (musicXml) => set({ musicXml, isDemo: false }),
       setRecording: (
@@ -153,6 +164,19 @@ export const useStudioStore = create<StudioState>()(
           jobStatus: "queued",
           jobStage: "waiting_for_worker",
           jobProgress: 0,
+        }),
+      setLocalProject: (projectTitle, musicXml) =>
+        set({
+          projectTitle,
+          projectArtist: "Guest browser transcription",
+          musicXml,
+          isDemo: false,
+          projectId: null,
+          revisionId: null,
+          jobId: null,
+          jobStatus: "succeeded",
+          jobStage: "local_complete",
+          jobProgress: 1,
         }),
       setJob: (jobStatus, jobStage, jobProgress) =>
         set({ jobStatus, jobStage, jobProgress }),
@@ -178,6 +202,11 @@ export const useStudioStore = create<StudioState>()(
         instrument: state.instrument,
         chordAnalysis: state.chordAnalysis,
         loopEnabled: state.loopEnabled,
+        savedAt: state.savedAt,
+        musicXml: state.savedAt ? state.musicXml : DEMO_MUSIC_XML,
+        projectTitle: state.savedAt ? state.projectTitle : null,
+        projectArtist: state.savedAt ? state.projectArtist : null,
+        isDemo: state.savedAt ? state.isDemo : true,
       }),
     },
   ),

@@ -1,6 +1,11 @@
 import { useState } from "react";
-import { LogOut, X } from "lucide-react";
-import { ApiError, apiFetch, type TokenResponse } from "@/lib/api";
+import { CloudOff, LogOut, X } from "lucide-react";
+import {
+  API_AVAILABLE,
+  ApiError,
+  apiFetch,
+  type TokenResponse,
+} from "@/lib/api";
 import { useAuthStore } from "@/store/auth";
 import styles from "./Studio.module.css";
 
@@ -89,6 +94,21 @@ export function AuthDialog({ onClose, onNotify }: AuthDialogProps) {
             <p>{user.email}</p>
             <button onClick={() => void signOut()} type="button">
               <LogOut size={16} /> Sign out
+            </button>
+          </div>
+        ) : !API_AVAILABLE ? (
+          <div className={styles.accountSummary}>
+            <div>
+              <CloudOff size={27} />
+            </div>
+            <h2 id="account-title">Guest studio is active</h2>
+            <p>
+              Upload, transcribe, edit, transpose, practice, and export without
+              an account. Cloud accounts are intentionally hidden until a
+              persistent backend is connected.
+            </p>
+            <button onClick={onClose} type="button">
+              Continue without an account
             </button>
           </div>
         ) : (

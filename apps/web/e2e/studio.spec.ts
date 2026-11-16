@@ -1,5 +1,37 @@
 import { expect, test } from "@playwright/test";
 
+function wavFixture(): Buffer {
+  const sampleRate = 22_050;
+  const segments = [
+    { seconds: 0.75, frequency: 220 },
+    { seconds: 0.15, frequency: 0 },
+    { seconds: 0.75, frequency: 523.25 },
+  ];
+  const samples = segments.flatMap(({ seconds, frequency }) =>
+    Array.from({ length: Math.floor(seconds * sampleRate) }, (_, index) =>
+      frequency ? Math.sin((2 * Math.PI * frequency * index) / sampleRate) : 0,
+    ),
+  );
+  const dataBytes = samples.length * 2;
+  const wav = Buffer.alloc(44 + dataBytes);
+  wav.write("RIFF", 0);
+  wav.writeUInt32LE(36 + dataBytes, 4);
+  wav.write("WAVEfmt ", 8);
+  wav.writeUInt32LE(16, 16);
+  wav.writeUInt16LE(1, 20);
+  wav.writeUInt16LE(1, 22);
+  wav.writeUInt32LE(sampleRate, 24);
+  wav.writeUInt32LE(sampleRate * 2, 28);
+  wav.writeUInt16LE(2, 32);
+  wav.writeUInt16LE(16, 34);
+  wav.write("data", 36);
+  wav.writeUInt32LE(dataBytes, 40);
+  samples.forEach((sample, index) =>
+    wav.writeInt16LE(Math.round(sample * 0x5fff), 44 + index * 2),
+  );
+  return wav;
+}
+
 test("loads the demo studio and opens the compliant ingestion flow", async ({
   page,
 }) => {
@@ -15,9 +47,12 @@ test("loads the demo studio and opens the compliant ingestion flow", async ({
     "aria-selected",
     "true",
   );
-  await expect(
-    page.locator('section[aria-label="Interactive score"] svg').first(),
-  ).toBeVisible({ timeout: 20_000 });
+  const score = page.locator('section[aria-label="Interactive score"]');
+  await expect(score.locator("svg").first()).toBeVisible({ timeout: 20_000 });
+  await expect(score).toContainText("C△7");
+  await expect(score).toContainText("D−7");
+  await expect(score.locator(".harm")).toHaveCount(12);
+  await expect(score.locator(".ledgerLines path")).not.toHaveCount(0);
 
   await page.getByRole("button", { name: "New Transcription" }).click();
   const dialog = page.getByRole("dialog", { name: "Bring in a recording" });
@@ -29,6 +64,33 @@ test("loads the demo studio and opens the compliant ingestion flow", async ({
   await expect(dialog).toBeHidden();
 });
 
+test("transcribes an uploaded phrase as a guest without authentication", async ({
+  page,
+}, testInfo) => {
+  test.skip(
+    testInfo.project.name !== "chromium",
+    "The browser DSP path only needs one desktop regression pass.",
+  );
+  await page.goto("/");
+  await page.getByRole("button", { name: "New Transcription" }).click();
+  const dialog = page.getByRole("dialog", { name: "Bring in a recording" });
+  await expect(dialog).toContainText("No account is required");
+  await dialog.locator('input[type="file"]').setInputFiles({
+    name: "guest-ledger-phrase.wav",
+    mimeType: "audio/wav",
+    buffer: wavFixture(),
+  });
+
+  await expect(dialog).toBeHidden({ timeout: 30_000 });
+  await expect(page.getByRole("heading", { level: 1 })).toContainText(
+    "guest-ledger-phrase",
+  );
+  await expect(page.getByText(/Local transcription ready/)).toBeVisible();
+  await expect(
+    page.locator('section[aria-label="Interactive score"] svg').first(),
+  ).toBeVisible({ timeout: 20_000 });
+});
+
 test("switches analysis and twelve-key practice views without page overflow", async ({
   page,
 }) => {
@@ -36,7 +98,9 @@ test("switches analysis and twelve-key practice views without page overflow", as
   await page.getByRole("tab", { name: "Analysis" }).click();
   await expect(page.getByText("HARMONIC PATH")).toBeVisible();
   await page.getByRole("tab", { name: "Practice", exact: true }).click();
-  await expect(page.getByText("Move the phrase through every center.")).toBeVisible();
+  await expect(
+    page.getByText("Move the phrase through every center."),
+  ).toBeVisible();
   await expect(page.getByRole("button", { name: "C Practice" })).toBeVisible();
 
   const overflows = await page.evaluate(

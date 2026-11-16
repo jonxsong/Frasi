@@ -1,8 +1,10 @@
 import { useAuthStore, type AuthUser } from "@/store/auth";
 
+const configuredApiUrl = process.env.NEXT_PUBLIC_API_URL;
 export const API_URL = (
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"
+  configuredApiUrl === undefined ? "http://localhost:8000" : configuredApiUrl
 ).replace(/\/$/, "");
+export const API_AVAILABLE = API_URL.length > 0;
 
 export class ApiError extends Error {
   constructor(
@@ -152,6 +154,11 @@ export async function apiFetch<T>(
   init: RequestInit = {},
   retryAuthentication = true,
 ): Promise<T> {
+  if (!API_AVAILABLE)
+    throw new ApiError(
+      0,
+      "Cloud sync is not connected on this deployment. Guest transcription remains available.",
+    );
   const token = useAuthStore.getState().accessToken;
   const headers = new Headers(init.headers);
   if (token) headers.set("Authorization", `Bearer ${token}`);
@@ -190,6 +197,11 @@ export async function apiFetch<T>(
 }
 
 export async function apiDownload(path: string): Promise<Blob> {
+  if (!API_AVAILABLE)
+    throw new ApiError(
+      0,
+      "Cloud exports are not connected. MusicXML remains available in guest mode.",
+    );
   const token = useAuthStore.getState().accessToken;
   const response = await fetch(`${API_URL}${path}`, {
     headers: token ? { Authorization: `Bearer ${token}` } : undefined,
