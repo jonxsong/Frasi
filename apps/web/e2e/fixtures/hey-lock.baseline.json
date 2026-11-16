@@ -11,14 +11,17 @@
     "durationSeconds": 20
   },
   "expected": {
-    "bpm": 123,
-    "detectedLeadNotes": 85,
-    "measureCount": 10,
-    "musicXmlNoteElements": 101,
-    "pitchedNoteElements": 94,
-    "tripletGroups": 5,
-    "beamElements": 59,
-    "tieElements": 18,
-    "symbolicSha256": "34fd80d84bf16a6dc212f109976aa008b3974e554857f43124f67703246282ec"
+    "bpm": 86,
+    "detectedLeadNotes": 64,
+    "measureCount": 7,
+    "musicXmlNoteElements": 76,
+    "pitchedNoteElements": 69,
+    "tripletGroups": 0,
+    "beamElements": 72,
+    "tieElements": 10,
+    "lowestWrittenMidi": 68,
+    "highestWrittenMidi": 89,
+    "partName": "Tenor Saxophone in B♭",
+    "symbolicSha256": "b6f7fd83d7e961089cd7b35472c378b6df8e9006f3eb007647aa2e67e776796d"
   }
 }

@@ -20,10 +20,10 @@ and Frasi will transcribe that region directly in your browser.
 
 </div>
 
-Frasi turns authorized audio into an editable concert-pitch score while preserving the
-performance timing that produced it. The browser combines a waveform, A–B looping, variable
-speed playback, Verovio notation, instrument transposition, harmonic guidance, vocabulary
-capture, and practice history in one responsive workspace.
+Frasi keeps an editable concert-pitch score as its source of truth while presenting tenor
+saxophone music automatically as a correctly transposed B♭ written part. The browser combines
+a waveform, A–B looping, variable-speed playback, Verovio notation, harmonic guidance,
+vocabulary capture, and practice history in one responsive workspace.
 
 The repository contains working software rather than a UI-only prototype. A FastAPI service,
 PostgreSQL schema, encrypted S3-compatible storage, Redis/Celery worker, DSP transcription
@@ -44,17 +44,17 @@ Compose.
 - CPU monophonic DSP using HPSS, onset detection, pYIN pitch tracking, tempo estimation,
   rational rhythm quantization, dotted values, tuplets, dual performance/symbolic timing, and
   MusicXML generation.
-- Account-free browser transcription using Spotify Basic Pitch inference, lead-line extraction,
-  and rhythm quantization, so the public studio is testable without a cloud API or uploaded
-  audio leaving the device.
+- Account-free browser transcription using Spotify Basic Pitch inference, instrument-aware
+  lead-line extraction, onset-derived tempo, and context-aware rhythm quantization, so the
+  public studio is testable without a cloud API or uploaded audio leaving the device.
 - Exact start/end selection for uploads and captured playback, with chunked analysis of up to
   ten minutes per pass instead of a hidden opening-segment cutoff.
 - Bounded in-memory tab-audio recording for authorized YouTube and Spotify playback, with an
   explicit browser share picker, user-controlled stop, and honest protected-content errors.
 - Immutable score correction with optimistic concurrency, note/chord validation, and complete
   revision history.
-- Canonical concert-pitch representation with derived alto/tenor/soprano/baritone saxophone,
-  trumpet, trombone, chromatic, and all-twelve-key views.
+- Canonical concert-pitch representation with automatic tenor B♭ written pitch, hard low-B♭
+  enforcement without suppressing altissimo, and derived instrument/practice-key views.
 - Deterministic key/mode, chord, Roman-numeral, ii–V–I, and scale-choice analysis with explicit
   confidence and caveats.
 - Jazz-standard chord engraving (`△`, `−`, `ø`, `°`) with semantic MusicXML harmony kinds,

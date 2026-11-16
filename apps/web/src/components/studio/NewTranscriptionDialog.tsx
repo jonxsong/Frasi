@@ -206,7 +206,11 @@ export function NewTranscriptionDialog({
         const result = await transcribeAudioLocally(
           pendingAudio.file,
           (stage, progress) => setJob("processing", stage, progress),
-          { startSeconds: selectionStart, endSeconds: selectionEnd },
+          {
+            startSeconds: selectionStart,
+            endSeconds: selectionEnd,
+            instrumentId: instrument,
+          },
         );
         setAudio(
           pendingAudio.url,

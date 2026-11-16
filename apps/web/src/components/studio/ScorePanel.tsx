@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Music2, PencilLine, ScanLine, ZoomIn, ZoomOut } from "lucide-react";
-import { transposeMusicXml } from "@/lib/musicXml";
+import { toWrittenPartMusicXml } from "@/lib/musicXml";
 import { useStudioStore } from "@/store/studio";
 import styles from "./Studio.module.css";
 import { AnalysisPanel } from "./AnalysisPanel";
@@ -69,7 +69,7 @@ export function ScorePanel({ onNotify }: ScorePanelProps) {
   const transposeSemitones = useStudioStore(
     (state) => state.transposeSemitones,
   );
-  const transposeKey = useStudioStore((state) => state.transposeKey);
+  const instrument = useStudioStore((state) => state.instrument);
   const scoreTab = useStudioStore((state) => state.scoreTab);
   const currentTime = useStudioStore((state) => state.currentTime);
   const selectionStart = useStudioStore((state) => state.selectionStart);
@@ -143,10 +143,10 @@ export function ScorePanel({ onNotify }: ScorePanelProps) {
           spacingStaff: 8,
           spacingSystem: 11,
         });
-        const displayXml = transposeMusicXml(
+        const displayXml = toWrittenPartMusicXml(
           musicXml,
+          instrument,
           transposeSemitones,
-          transposeKey,
         );
         if (!toolkit.loadData(displayXml))
           throw new Error("Notation engine rejected this score.");
@@ -179,7 +179,7 @@ export function ScorePanel({ onNotify }: ScorePanelProps) {
       active = false;
       toolkit?.destroy();
     };
-  }, [musicXml, transposeKey, transposeSemitones]);
+  }, [instrument, musicXml, transposeSemitones]);
 
   useEffect(() => {
     const measures =

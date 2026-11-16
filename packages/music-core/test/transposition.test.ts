@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { ScoreDocument } from "@frasi/shared-types";
-import { toWrittenMidi, transposeChord, transposeScore } from "../src";
+import {
+  concertRange,
+  conventionalConcertRange,
+  toWrittenMidi,
+  transposeChord,
+  transposeScore,
+} from "../src";
 
 const score: ScoreDocument = {
   id: "score-1",
@@ -48,6 +54,16 @@ describe("instrument notation", () => {
     expect(toWrittenMidi(48, "tenor_saxophone")).toBe(62);
     expect(toWrittenMidi(39, "baritone_saxophone")).toBe(60);
     expect(toWrittenMidi(48, "trombone")).toBe(48);
+  });
+
+  it("enforces written low B-flat while leaving tenor altissimo open", () => {
+    expect(concertRange("tenor_saxophone")).toEqual({
+      minimum: 44,
+      maximum: 113,
+    });
+    expect(toWrittenMidi(44, "tenor_saxophone")).toBe(58);
+    expect(toWrittenMidi(82, "tenor_saxophone")).toBe(96);
+    expect(conventionalConcertRange("tenor_saxophone").maximum).toBe(76);
   });
 });
 

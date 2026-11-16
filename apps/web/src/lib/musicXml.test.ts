@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from "vitest";
-import { transposeMusicXml } from "./musicXml";
+import { toWrittenPartMusicXml, transposeMusicXml } from "./musicXml";
 
 const xml = `<?xml version="1.0"?><score-partwise><part><measure><attributes><key><fifths>0</fifths></key></attributes><harmony><root><root-step>C</root-step></root><kind text="△7">major-seventh</kind><bass><bass-step>E</bass-step></bass></harmony><note><pitch><step>B</step><octave>4</octave></pitch></note></measure></part></score-partwise>`;
 
@@ -28,5 +28,15 @@ describe("MusicXML display transposition", () => {
 
   it("does not rewrite canonical XML for zero semitones", () => {
     expect(transposeMusicXml(xml, 0, "C")).toBe(xml);
+  });
+
+  it("writes a tenor B-flat part a major ninth above concert pitch", () => {
+    const concertAb = `<?xml version="1.0"?><score-partwise><part-list><score-part id="P1"><part-name>Concert Pitch</part-name></score-part></part-list><part id="P1"><measure><attributes><key><fifths>-4</fifths></key></attributes><note><pitch><step>A</step><alter>-1</alter><octave>2</octave></pitch></note></measure></part></score-partwise>`;
+    const result = toWrittenPartMusicXml(concertAb, "tenor_saxophone");
+    expect(result).toContain("<part-name>Tenor Saxophone in B♭</part-name>");
+    expect(result).toContain(
+      "<step>B</step><alter>-1</alter><octave>3</octave>",
+    );
+    expect(result).toContain("<fifths>-2</fifths>");
   });
 });

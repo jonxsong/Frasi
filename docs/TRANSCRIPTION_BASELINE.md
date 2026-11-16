@@ -16,11 +16,22 @@ $env:FRASI_BASELINE_AUDIO = "C:\path\to\Hey Lock.mp3"
 pnpm --filter @frasi/web test:baseline
 ```
 
-The test verifies the source hash, exact selection, inferred tempo and note-event count,
-and a normalized symbolic MusicXML signature. It also records notation structure—measures,
-pitched notes, beams, ties, and visible triplet groups—then attaches the exported MusicXML
-and a full-page score screenshot to the Playwright result.
+The test verifies the source hash and exact selection, then exercises the same browser model,
+lead-line selector, rhythm quantizer, and tenor-part projection used by the public studio. Its
+current quality gates require:
 
-The committed expectation is a regression baseline, not a claim of ground-truth musical
-accuracy. Any transcription-engine change must be compared against this same window; update
-the snapshot only after reviewing whether the score improved.
+- an 86 BPM browser estimate (the independent backend beat tracker reports about 89 BPM);
+- a `Tenor Saxophone in B♭` MusicXML part;
+- every written note at or above the tenor's hard lower floor, B♭3 (MIDI 58), while
+  preserving valid altissimo above the conventional F♯6 ceiling;
+- zero accompaniment notes below the corresponding concert range;
+- stable note, measure, rest, beam, tie, tuplet, and normalized MusicXML counts.
+
+The Playwright result also attaches the exported MusicXML and a full-page score screenshot.
+
+The committed expectation is a regression and playability baseline, not a claim of
+human-verified note-for-note accuracy. It catches the concrete failures that motivated it:
+bass/accompaniment leakage, impossible tenor notes, concert-versus-written-pitch confusion,
+unstable tempo, and rhythm-engraving regressions. Any transcription-engine change must be
+compared against this same window; update the snapshot only after reviewing the score and
+listening against the phrase.

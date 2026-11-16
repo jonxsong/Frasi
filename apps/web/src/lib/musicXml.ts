@@ -1,4 +1,5 @@
-import { transposeChord } from "@frasi/music-core";
+import { instruments, transposeChord } from "@frasi/music-core";
+import type { InstrumentId } from "@frasi/shared-types";
 
 const NATURAL: Record<string, number> = {
   C: 0,
@@ -37,6 +38,23 @@ const FIFTHS: Record<string, number> = {
   A: 3,
   Bb: -2,
   B: 5,
+};
+const MAJOR_KEY_BY_FIFTHS: Record<number, string> = {
+  [-7]: "Cb",
+  [-6]: "Gb",
+  [-5]: "Db",
+  [-4]: "Ab",
+  [-3]: "Eb",
+  [-2]: "Bb",
+  [-1]: "F",
+  0: "C",
+  1: "G",
+  2: "D",
+  3: "A",
+  4: "E",
+  5: "B",
+  6: "F#",
+  7: "C#",
 };
 
 function text(element: Element, selector: string): string | null {
@@ -142,5 +160,49 @@ export function transposeMusicXml(
     });
   }
 
+  return new XMLSerializer().serializeToString(document);
+}
+
+function destinationKeyForOffset(source: string, semitones: number): string {
+  const document = new DOMParser().parseFromString(source, "application/xml");
+  const sourceFifths = Number(
+    document.querySelector("key > fifths")?.textContent ?? 0,
+  );
+  const sourceKey = MAJOR_KEY_BY_FIFTHS[sourceFifths] ?? "C";
+  const sourcePitchClass =
+    (NATURAL[sourceKey[0] ?? "C"] ?? 0) +
+    (sourceKey.endsWith("#") ? 1 : sourceKey.endsWith("b") ? -1 : 0);
+  const destinationPitchClass = (sourcePitchClass + semitones + 120) % 12;
+  const preferFlats = sourceFifths < 0;
+  return (preferFlats ? FLATS : SHARPS)[destinationPitchClass] ?? "C";
+}
+
+export function toWrittenPartMusicXml(
+  source: string,
+  instrumentId: InstrumentId,
+  additionalSemitones = 0,
+): string {
+  const instrument = instruments[instrumentId];
+  const keyIsUnanalysed = source.includes(
+    '<miscellaneous-field name="key-analysis">unavailable</miscellaneous-field>',
+  );
+  const semitones = instrument.writtenOffsetSemitones + additionalSemitones;
+  const destinationKey = destinationKeyForOffset(source, semitones);
+  const written = transposeMusicXml(source, semitones, destinationKey);
+  const document = new DOMParser().parseFromString(written, "application/xml");
+  if (document.querySelector("parsererror"))
+    throw new Error("Invalid MusicXML document");
+  const partName = document.querySelector("score-part > part-name");
+  if (partName) {
+    partName.textContent =
+      instrumentId === "tenor_saxophone"
+        ? "Tenor Saxophone in B♭"
+        : instrument.name;
+  }
+  if (keyIsUnanalysed) {
+    document.querySelectorAll("key > fifths").forEach((fifths) => {
+      fifths.textContent = "0";
+    });
+  }
   return new XMLSerializer().serializeToString(document);
 }

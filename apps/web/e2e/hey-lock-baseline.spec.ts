@@ -13,6 +13,16 @@ function count(xml: string, pattern: RegExp): number {
   return xml.match(pattern)?.length ?? 0;
 }
 
+const NATURAL_MIDI: Record<string, number> = {
+  C: 0,
+  D: 2,
+  E: 4,
+  F: 5,
+  G: 7,
+  A: 9,
+  B: 11,
+};
+
 test("matches the canonical Hey Lock 1:23–1:43 transcription baseline", async ({
   page,
 }, testInfo) => {
@@ -74,6 +84,16 @@ test("matches the canonical Hey Lock 1:23–1:43 transcription baseline", async 
   const noteBodies = [...xml.matchAll(/<note>[\s\S]*?<\/note>/g)]
     .map((match) => match[0])
     .join("");
+  const writtenPitches = [
+    ...xml.matchAll(
+      /<pitch><step>([A-G])<\/step>(?:<alter>(-?\d+)<\/alter>)?<octave>(\d+)<\/octave><\/pitch>/g,
+    ),
+  ].map(
+    (match) =>
+      (Number(match[3]) + 1) * 12 +
+      (NATURAL_MIDI[match[1] ?? "C"] ?? 0) +
+      Number(match[2] ?? 0),
+  );
 
   expect({
     bpm: Number(xml.match(/<per-minute>(\d+)<\/per-minute>/)?.[1]),
@@ -83,6 +103,9 @@ test("matches the canonical Hey Lock 1:23–1:43 transcription baseline", async 
     tripletGroups: count(xml, /<tuplet type="start"/g),
     beamElements: count(xml, /<beam number=/g),
     tieElements: count(xml, /<tie type=/g),
+    lowestWrittenMidi: Math.min(...writtenPitches),
+    highestWrittenMidi: Math.max(...writtenPitches),
+    partName: xml.match(/<part-name>([^<]+)/)?.[1],
     symbolicSha256: createHash("sha256").update(noteBodies).digest("hex"),
   }).toEqual({
     bpm: baseline.expected.bpm,
@@ -92,8 +115,12 @@ test("matches the canonical Hey Lock 1:23–1:43 transcription baseline", async 
     tripletGroups: baseline.expected.tripletGroups,
     beamElements: baseline.expected.beamElements,
     tieElements: baseline.expected.tieElements,
+    lowestWrittenMidi: baseline.expected.lowestWrittenMidi,
+    highestWrittenMidi: baseline.expected.highestWrittenMidi,
+    partName: baseline.expected.partName,
     symbolicSha256: baseline.expected.symbolicSha256,
   });
+  expect(writtenPitches.every((midi) => midi >= 58)).toBe(true);
   expect(pageErrors).toEqual([]);
   expect(failedResponses).toEqual([]);
 

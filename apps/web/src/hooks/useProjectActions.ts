@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
+import { toWrittenPartMusicXml } from "@/lib/musicXml";
 import { useStudioStore } from "@/store/studio";
 import { ApiError, apiDownload } from "@/lib/api";
 
@@ -17,6 +18,10 @@ function download(content: BlobPart | Blob, name: string, type: string) {
 
 export function useProjectActions(notify: (message: string) => void) {
   const musicXml = useStudioStore((state) => state.musicXml);
+  const instrument = useStudioStore((state) => state.instrument);
+  const transposeSemitones = useStudioStore(
+    (state) => state.transposeSemitones,
+  );
   const markSaved = useStudioStore((state) => state.markSaved);
   const projectId = useStudioStore((state) => state.projectId);
   const projectTitle = useStudioStore((state) => state.projectTitle);
@@ -46,19 +51,19 @@ export function useProjectActions(notify: (message: string) => void) {
         /[^a-z0-9_-]+/gi,
         "-",
       );
-      if (!projectId) {
-        if (format !== "musicxml") {
-          notify(
-            "Run a transcription to generate server-backed MIDI and PDF exports",
-          );
-          return;
-        }
+      if (format === "musicxml") {
         download(
-          musicXml,
-          `${stem}.musicxml`,
+          toWrittenPartMusicXml(musicXml, instrument, transposeSemitones),
+          `${stem}-tenor-bb.musicxml`,
           "application/vnd.recordare.musicxml+xml",
         );
-        notify("MusicXML export downloaded");
+        notify("Tenor B♭ MusicXML export downloaded");
+        return;
+      }
+      if (!projectId) {
+        notify(
+          "Run a transcription to generate server-backed MIDI and PDF exports",
+        );
         return;
       }
       try {
@@ -67,14 +72,12 @@ export function useProjectActions(notify: (message: string) => void) {
         );
         const suffix = format === "midi" ? "mid" : format;
         download(blob, `${stem}.${suffix}`, blob.type);
-        notify(
-          `${format === "musicxml" ? "MusicXML" : format.toUpperCase()} export downloaded`,
-        );
+        notify(`${format.toUpperCase()} export downloaded`);
       } catch (cause) {
         notify(cause instanceof ApiError ? cause.message : "Export failed");
       }
     },
-    [musicXml, notify, projectId, projectTitle],
+    [instrument, musicXml, notify, projectId, projectTitle, transposeSemitones],
   );
 
   return { save, share, exportScore };

@@ -1,3 +1,6 @@
+import { concertRange, conventionalConcertRange } from "@frasi/music-core";
+import type { InstrumentId } from "@frasi/shared-types";
+
 export interface LocalNoteEvent {
   midi: number;
   onsetSeconds: number;
@@ -15,7 +18,8 @@ const MODEL_CHUNK_SECONDS = 30;
 const MODEL_CHUNK_OVERLAP_SECONDS = 0.75;
 const DIVISIONS = 12;
 const MEASURE_TICKS = DIVISIONS * 4;
-const TICK_CANDIDATES = [3, 4, 6, 8, 9, 12, 18, 24, 36, 48];
+const STRAIGHT_TICK_CANDIDATES = [3, 6, 9, 12, 18, 24, 36, 48];
+const TRIPLET_TICK_CANDIDATES = [3, 4, 6, 8, 9, 12, 18, 24, 36, 48];
 const PITCH_NAMES = [
   ["C", 0],
   ["C", 1],
@@ -49,9 +53,12 @@ function median(values: number[]): number {
     : ((ordered[middle - 1] ?? 0) + (ordered[middle] ?? 0)) / 2;
 }
 
-function nearestTick(beats: number): number {
+function nearestTick(beats: number, allowTriplet = false): number {
   const raw = Math.max(0.25, beats) * DIVISIONS;
-  return TICK_CANDIDATES.reduce((best, candidate) =>
+  const candidates = allowTriplet
+    ? TRIPLET_TICK_CANDIDATES
+    : STRAIGHT_TICK_CANDIDATES;
+  return candidates.reduce((best, candidate) =>
     Math.abs(candidate - raw) < Math.abs(best - raw) ? candidate : best,
   );
 }
@@ -239,13 +246,125 @@ function clusterByOnset(notes: ModelNoteEvent[]): ModelNoteEvent[][] {
   return clusters;
 }
 
-/** Select one coherent lead line from Basic Pitch's polyphonic candidates. */
-export function selectMelodicLine(notes: ModelNoteEvent[]): LocalNoteEvent[] {
+export interface MelodySelectionOptions {
+  instrumentId?: InstrumentId;
+  minimumMidi?: number;
+  maximumMidi?: number;
+  preferredMinimumMidi?: number;
+}
+
+function removeMelodicOutliers(notes: LocalNoteEvent[]): LocalNoteEvent[] {
+  if (notes.length < 3) return notes;
+  return notes.filter((note, index) => {
+    const previous = notes[index - 1];
+    const next = notes[index + 1];
+    if (!previous || !next) return true;
+    const incomingLeap = Math.abs(note.midi - previous.midi);
+    const outgoingLeap = Math.abs(next.midi - note.midi);
+    const surroundingMotion = Math.abs(next.midi - previous.midi);
+    const duration = note.offsetSeconds - note.onsetSeconds;
+    return !(
+      incomingLeap >= 8 &&
+      outgoingLeap >= 8 &&
+      surroundingMotion <= 5 &&
+      duration <= 0.65
+    );
+  });
+}
+
+function correctOctaveErrors(
+  notes: LocalNoteEvent[],
+  minimumMidi: number,
+  maximumMidi: number,
+): LocalNoteEvent[] {
+  if (notes.length < 2) return notes;
+  const candidates = notes.map((note) =>
+    [note.midi, note.midi - 12, note.midi + 12]
+      .filter(
+        (midi, index, values) =>
+          midi >= minimumMidi &&
+          midi <= maximumMidi &&
+          values.indexOf(midi) === index,
+      )
+      .map((midi) => ({
+        midi,
+        shiftCost: midi === note.midi ? 0 : 0.58,
+      })),
+  );
+  const costs: number[][] = [];
+  const previous: number[][] = [];
+  candidates.forEach((choices, noteIndex) => {
+    costs[noteIndex] = [];
+    previous[noteIndex] = [];
+    choices.forEach((choice, choiceIndex) => {
+      if (noteIndex === 0) {
+        costs[noteIndex]![choiceIndex] = choice.shiftCost;
+        previous[noteIndex]![choiceIndex] = -1;
+        return;
+      }
+      let bestCost = Number.POSITIVE_INFINITY;
+      let bestPrevious = 0;
+      (candidates[noteIndex - 1] ?? []).forEach(
+        (previousChoice, previousIndex) => {
+          const leap = Math.abs(choice.midi - previousChoice.midi);
+          const transitionCost = leap * 0.035 + Math.max(0, leap - 7) * 0.22;
+          const cost =
+            (costs[noteIndex - 1]?.[previousIndex] ?? 0) +
+            choice.shiftCost +
+            transitionCost;
+          if (cost < bestCost) {
+            bestCost = cost;
+            bestPrevious = previousIndex;
+          }
+        },
+      );
+      costs[noteIndex]![choiceIndex] = bestCost;
+      previous[noteIndex]![choiceIndex] = bestPrevious;
+    });
+  });
+  let selected = (costs.at(-1) ?? []).reduce(
+    (best, cost, index, values) =>
+      cost < (values[best] ?? Number.POSITIVE_INFINITY) ? index : best,
+    0,
+  );
+  const corrected = [...notes];
+  for (let index = notes.length - 1; index >= 0; index -= 1) {
+    const choice = candidates[index]?.[selected];
+    const note = corrected[index];
+    if (choice && note) corrected[index] = { ...note, midi: choice.midi };
+    selected = previous[index]?.[selected] ?? 0;
+  }
+  return corrected;
+}
+
+/** Select one coherent, instrument-aware lead line from polyphonic candidates. */
+export function selectMelodicLine(
+  notes: ModelNoteEvent[],
+  options: MelodySelectionOptions = {},
+): LocalNoteEvent[] {
+  const range = options.instrumentId
+    ? concertRange(options.instrumentId)
+    : { minimum: 36, maximum: 100 };
+  const minimumMidi = options.minimumMidi ?? range.minimum;
+  const maximumMidi = options.maximumMidi ?? range.maximum;
+  const conventionalRange = options.instrumentId
+    ? conventionalConcertRange(options.instrumentId)
+    : { minimum: minimumMidi, maximum: maximumMidi };
+  const preferredMinimumMidi =
+    options.preferredMinimumMidi ??
+    Math.min(
+      maximumMidi,
+      minimumMidi +
+        Math.max(
+          8,
+          (conventionalRange.maximum - conventionalRange.minimum) * 0.35,
+        ),
+    );
   const clusters = clusterByOnset(
     notes.filter(
       (note) =>
-        note.pitchMidi >= 36 &&
-        note.pitchMidi <= 100 &&
+        note.pitchMidi >= minimumMidi &&
+        note.pitchMidi <= maximumMidi &&
         note.durationSeconds >= 0.045 &&
         note.amplitude >= 0.18,
     ),
@@ -254,12 +373,58 @@ export function selectMelodicLine(notes: ModelNoteEvent[]): LocalNoteEvent[] {
 
   const scores: number[][] = [];
   const previousIndexes: number[][] = [];
+  const silenceIndexes: number[] = [];
   clusters.forEach((cluster, clusterIndex) => {
-    scores[clusterIndex] = [];
-    previousIndexes[clusterIndex] = [];
+    const candidates = [...cluster, null];
+    const silenceIndex = candidates.length - 1;
+    silenceIndexes[clusterIndex] = silenceIndex;
+    scores[clusterIndex] = Array(candidates.length).fill(
+      Number.NEGATIVE_INFINITY,
+    );
+    previousIndexes[clusterIndex] = Array(candidates.length).fill(-1);
+
+    if (clusterIndex === 0) {
+      scores[clusterIndex]![silenceIndex] = 0;
+    } else {
+      const previousScores = scores[clusterIndex - 1] ?? [];
+      let bestPreviousIndex = 0;
+      previousScores.forEach((score, index) => {
+        if (score > (previousScores[bestPreviousIndex] ?? -Infinity))
+          bestPreviousIndex = index;
+      });
+      scores[clusterIndex]![silenceIndex] =
+        (previousScores[bestPreviousIndex] ?? 0) - 0.015;
+      previousIndexes[clusterIndex]![silenceIndex] = bestPreviousIndex;
+    }
+
+    const hasConventionalCandidate = cluster.some(
+      (candidate) => candidate.pitchMidi <= conventionalRange.maximum,
+    );
     cluster.forEach((note, noteIndex) => {
+      const lowRegisterPenalty =
+        note.pitchMidi < preferredMinimumMidi
+          ? (preferredMinimumMidi - note.pitchMidi) * 0.13
+          : 0;
+      // Prefer the conventional register over simultaneous overtones without
+      // rejecting an altissimo-only onset or passage.
+      const altissimoPenalty =
+        note.pitchMidi > conventionalRange.maximum
+          ? (note.pitchMidi - conventionalRange.maximum) *
+            (hasConventionalCandidate ? 0.18 : 0.012)
+          : 0;
+      const registerEvidence =
+        Math.min(
+          1.2,
+          (note.pitchMidi - minimumMidi) /
+            Math.max(1, conventionalRange.maximum - minimumMidi),
+        ) * 0.55;
       const evidence =
-        note.amplitude * 2 + Math.min(1, note.durationSeconds) * 0.28;
+        note.amplitude * 1.55 +
+        Math.min(1.2, note.durationSeconds) * 0.28 +
+        registerEvidence -
+        lowRegisterPenalty -
+        altissimoPenalty -
+        0.72;
       if (clusterIndex === 0) {
         scores[clusterIndex]![noteIndex] = evidence;
         previousIndexes[clusterIndex]![noteIndex] = -1;
@@ -270,11 +435,11 @@ export function selectMelodicLine(notes: ModelNoteEvent[]): LocalNoteEvent[] {
       const previousCluster = clusters[clusterIndex - 1] ?? [];
       previousCluster.forEach((previous, previousIndex) => {
         const leapPenalty =
-          Math.min(24, Math.abs(note.pitchMidi - previous.pitchMidi)) * 0.045;
+          Math.min(24, Math.abs(note.pitchMidi - previous.pitchMidi)) * 0.065;
         const previousEnd =
           previous.startTimeSeconds + previous.durationSeconds;
         const overlapPenalty =
-          Math.max(0, previousEnd - note.startTimeSeconds) * 0.22;
+          Math.max(0, previousEnd - note.startTimeSeconds) * 0.45;
         const gapPenalty =
           Math.max(0, note.startTimeSeconds - previousEnd - 1.25) * 0.08;
         const score =
@@ -288,6 +453,15 @@ export function selectMelodicLine(notes: ModelNoteEvent[]): LocalNoteEvent[] {
           bestPrevious = previousIndex;
         }
       });
+      const previousSilenceIndex = silenceIndexes[clusterIndex - 1] ?? 0;
+      const fromSilence =
+        (scores[clusterIndex - 1]?.[previousSilenceIndex] ?? 0) +
+        evidence -
+        0.08;
+      if (fromSilence > bestScore) {
+        bestScore = fromSilence;
+        bestPrevious = previousSilenceIndex;
+      }
       scores[clusterIndex]![noteIndex] = bestScore;
       previousIndexes[clusterIndex]![noteIndex] = bestPrevious;
     });
@@ -345,7 +519,9 @@ export function selectMelodicLine(notes: ModelNoteEvent[]): LocalNoteEvent[] {
     }
     line.push(current);
   }
-  return line;
+  return removeMelodicOutliers(
+    correctOctaveErrors(line, minimumMidi, maximumMidi),
+  );
 }
 
 async function transcribeWithBasicPitch(
@@ -413,6 +589,62 @@ export function estimateTempo(notes: LocalNoteEvent[]): number {
   return Math.max(70, Math.min(180, Math.round(60 / beatSeconds)));
 }
 
+export function estimateTempoFromCandidates(notes: ModelNoteEvent[]): number {
+  if (notes.length < 4) return 120;
+  const binSeconds = 0.02;
+  const duration = Math.max(
+    ...notes.map((note) => note.startTimeSeconds + note.durationSeconds),
+  );
+  const impulses = new Float32Array(Math.ceil(duration / binSeconds) + 1);
+  for (const note of notes) {
+    if (note.amplitude < 0.2) continue;
+    const index = Math.round(note.startTimeSeconds / binSeconds);
+    impulses[index] = Math.max(impulses[index] ?? 0, note.amplitude);
+  }
+  const envelope = new Float32Array(impulses.length);
+  for (let index = 0; index < impulses.length; index += 1) {
+    envelope[index] =
+      (impulses[index - 2] ?? 0) * 0.15 +
+      (impulses[index - 1] ?? 0) * 0.55 +
+      (impulses[index] ?? 0) +
+      (impulses[index + 1] ?? 0) * 0.55 +
+      (impulses[index + 2] ?? 0) * 0.15;
+  }
+
+  function correlation(lag: number): number {
+    let product = 0;
+    let leftEnergy = 0;
+    let rightEnergy = 0;
+    for (let index = lag; index < envelope.length; index += 1) {
+      const left = envelope[index] ?? 0;
+      const right = envelope[index - lag] ?? 0;
+      product += left * right;
+      leftEnergy += left * left;
+      rightEnergy += right * right;
+    }
+    return product / Math.sqrt(Math.max(1e-9, leftEnergy * rightEnergy));
+  }
+
+  const scores = new Map<number, number>();
+  for (let bpm = 60; bpm <= 180; bpm += 1) {
+    const lag = Math.max(1, Math.round(60 / bpm / binSeconds));
+    const score =
+      correlation(lag) +
+      correlation(lag * 2) * 0.62 +
+      correlation(lag * 3) * 0.28;
+    scores.set(bpm, score);
+  }
+  let best = 120;
+  for (const [bpm, score] of scores) {
+    if (score > (scores.get(best) ?? -Infinity)) best = bpm;
+  }
+  if (best > 135) {
+    const half = Math.round(best / 2);
+    if ((scores.get(half) ?? 0) >= (scores.get(best) ?? 0) * 0.68) best = half;
+  }
+  return best;
+}
+
 interface SymbolicItem {
   midi: number | null;
   ticks: number;
@@ -423,22 +655,65 @@ interface SymbolicItem {
   tupletBracket?: boolean;
 }
 
+function tripletNoteIndexes(notes: LocalNoteEvent[], bpm: number): Set<number> {
+  const beatSeconds = 60 / bpm;
+  const indexes = new Set<number>();
+  for (let index = 0; index <= notes.length - 3; index += 1) {
+    const first = notes[index];
+    const second = notes[index + 1];
+    const third = notes[index + 2];
+    if (!first || !second || !third) continue;
+    const firstGap = second.onsetSeconds - first.onsetSeconds;
+    const secondGap = third.onsetSeconds - second.onsetSeconds;
+    const total = firstGap + secondGap;
+    const balanced =
+      Math.min(firstGap, secondGap) / Math.max(firstGap, secondGap) >= 0.72;
+    if (
+      balanced &&
+      total >= beatSeconds * 0.55 &&
+      total <= beatSeconds * 0.9 &&
+      firstGap >= beatSeconds * 0.22 &&
+      secondGap >= beatSeconds * 0.22
+    ) {
+      indexes.add(index);
+      indexes.add(index + 1);
+      indexes.add(index + 2);
+    }
+  }
+  return indexes;
+}
+
 function symbolicItems(notes: LocalNoteEvent[], bpm: number): SymbolicItem[] {
   const beatSeconds = 60 / bpm;
+  const tripletIndexes = tripletNoteIndexes(notes, bpm);
   const items: SymbolicItem[] = [];
   let previousOffset = notes[0]?.onsetSeconds ?? 0;
-  for (const note of notes) {
+  notes.forEach((note, index) => {
+    const allowTriplet = tripletIndexes.has(index);
     const gap = note.onsetSeconds - previousOffset;
-    if (gap > beatSeconds * 0.2)
-      items.push({ midi: null, ticks: nearestTick(gap / beatSeconds) });
+    if (gap > beatSeconds * 0.38)
+      items.push({
+        midi: null,
+        ticks: nearestTick(gap / beatSeconds, allowTriplet),
+      });
+    const next = notes[index + 1];
+    const detectedDuration = note.offsetSeconds - note.onsetSeconds;
+    const interOnsetDuration = next
+      ? next.onsetSeconds - note.onsetSeconds
+      : detectedDuration;
+    const releaseGap = next
+      ? next.onsetSeconds - note.offsetSeconds
+      : Number.POSITIVE_INFINITY;
+    const notatedDuration =
+      next && releaseGap < beatSeconds * 0.32
+        ? interOnsetDuration
+        : detectedDuration;
     items.push({
       midi: note.midi,
-      ticks: nearestTick(
-        (note.offsetSeconds - note.onsetSeconds) / beatSeconds,
-      ),
+      ticks: nearestTick(notatedDuration / beatSeconds, allowTriplet),
     });
-    previousOffset = note.offsetSeconds;
-  }
+    previousOffset = note.onsetSeconds + notatedDuration;
+  });
   return items;
 }
 
@@ -580,13 +855,17 @@ export function buildLocalMusicXml(
       return `<measure number="${index + 1}">${attributes}${annotateRhythm(items).map(itemXml).join("")}</measure>`;
     })
     .join("");
-  return `<?xml version="1.0" encoding="UTF-8" standalone="no"?><score-partwise version="4.0"><work><work-title>${escapeXml(title)}</work-title></work><identification><creator type="software">Frasi browser transcription · Spotify Basic Pitch</creator><miscellaneous><miscellaneous-field name="scope">Machine-learned browser transcription of the selected region; rhythm and lead-line extraction remain reviewable.</miscellaneous-field></miscellaneous></identification><part-list><score-part id="P1"><part-name>Concert Pitch</part-name></score-part></part-list><part id="P1">${measures}</part></score-partwise>`;
+  return `<?xml version="1.0" encoding="UTF-8" standalone="no"?><score-partwise version="4.0"><work><work-title>${escapeXml(title)}</work-title></work><identification><creator type="software">Frasi browser transcription · Spotify Basic Pitch</creator><miscellaneous><miscellaneous-field name="scope">Machine-learned browser transcription of the selected region; rhythm and lead-line extraction remain reviewable.</miscellaneous-field><miscellaneous-field name="key-analysis">unavailable</miscellaneous-field></miscellaneous></identification><part-list><score-part id="P1"><part-name>Concert Pitch</part-name></score-part></part-list><part id="P1">${measures}</part></score-partwise>`;
 }
 
 export async function transcribeAudioLocally(
   file: File,
   onProgress: (stage: string, progress: number) => void = () => undefined,
-  selection: { startSeconds?: number; endSeconds?: number } = {},
+  selection: {
+    startSeconds?: number;
+    endSeconds?: number;
+    instrumentId?: InstrumentId;
+  } = {},
 ): Promise<{ musicXml: string; noteCount: number; bpm: number }> {
   onProgress("decoding_audio", 0.08);
   const context = new AudioContext();
@@ -617,12 +896,19 @@ export async function transcribeAudioLocally(
     onProgress("tracking_pitch", 0.15 + progress * 0.65),
   );
   onProgress("extracting_lead_line", 0.82);
-  const notes = selectMelodicLine(candidates);
+  const notes = selectMelodicLine(candidates, {
+    instrumentId: selection.instrumentId ?? "tenor_saxophone",
+  });
   if (!notes.length)
     throw new Error(
       "No stable lead line was detected in that selection. Choose a clearer solo passage or a more isolated recording.",
     );
-  const bpm = estimateTempo(notes);
+  const candidateTempo = estimateTempoFromCandidates(candidates);
+  const melodicTempo = estimateTempo(notes);
+  const bpm =
+    Math.abs(candidateTempo - melodicTempo) <= 10
+      ? Math.round((candidateTempo + melodicTempo) / 2)
+      : candidateTempo;
   const title = file.name.replace(/\.[^.]+$/, "") || "Local transcription";
   const musicXml = buildLocalMusicXml(notes, bpm, title);
   onProgress("engraving_score", 0.96);

@@ -2,21 +2,6 @@ import { KeyboardMusic, Minus, Plus } from "lucide-react";
 import { useStudioStore } from "@/store/studio";
 import styles from "./Studio.module.css";
 
-const keys = [
-  ["C (Original)", 0],
-  ["Db", 1],
-  ["D", 2],
-  ["Eb", 3],
-  ["E", 4],
-  ["F", 5],
-  ["Gb", 6],
-  ["G", 7],
-  ["Ab", 8],
-  ["A", 9],
-  ["Bb", 10],
-  ["B", 11],
-] as const;
-
 interface ToggleProps {
   label: string;
   checked: boolean;
@@ -41,14 +26,9 @@ function Toggle({ label, checked, onChange }: ToggleProps) {
 }
 
 export function ControlSidebar() {
-  const transposeSemitones = useStudioStore(
-    (state) => state.transposeSemitones,
-  );
-  const transposeKey = useStudioStore((state) => state.transposeKey);
   const speed = useStudioStore((state) => state.speed);
   const loopEnabled = useStudioStore((state) => state.loopEnabled);
   const playbackMode = useStudioStore((state) => state.playbackMode);
-  const setTranspose = useStudioStore((state) => state.setTranspose);
   const setSpeed = useStudioStore((state) => state.setSpeed);
   const setLoopEnabled = useStudioStore((state) => state.setLoopEnabled);
   const setPlaybackMode = useStudioStore((state) => state.setPlaybackMode);
@@ -60,28 +40,12 @@ export function ControlSidebar() {
       aria-label="Playback and transcription controls"
     >
       <section className={styles.controlSection}>
-        <label htmlFor="transpose-key">Transpose</label>
-        <select
-          id="transpose-key"
-          value={transposeSemitones}
-          onChange={(event) => {
-            const semitones = Number(event.target.value);
-            const key =
-              keys.find((entry) => entry[1] === semitones)?.[0] ?? "C";
-            setTranspose(semitones, key);
-          }}
-        >
-          {keys.map(([key, semitones]) => (
-            <option key={key} value={semitones}>
-              {key}
-            </option>
-          ))}
-        </select>
-        <small>
-          {transposeKey === "C (Original)"
-            ? "Canonical concert score"
-            : `${transposeSemitones} semitones from original`}
-        </small>
+        <label>Written part</label>
+        <div className={styles.writtenPartCard}>
+          <strong>Tenor Saxophone</strong>
+          <span>B♭</span>
+        </div>
+        <small>Automatically written a major ninth above concert pitch</small>
       </section>
       <section className={styles.speedRow}>
         <span>Playback</span>

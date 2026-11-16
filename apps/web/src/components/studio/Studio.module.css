@@ -1465,6 +1465,35 @@
   font-size: 9px;
 }
 
+.writtenPartCard {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 12px;
+  border: 1px solid rgba(157, 124, 255, 0.38);
+  border-radius: 9px;
+  background: rgba(124, 92, 255, 0.09);
+}
+
+.writtenPartCard strong {
+  font-size: 12px;
+  font-weight: 680;
+}
+
+.writtenPartCard span {
+  display: grid;
+  place-items: center;
+  min-width: 30px;
+  height: 25px;
+  border-radius: 999px;
+  background: rgba(157, 124, 255, 0.2);
+  color: #c9b9ff;
+  font-size: 12px;
+  font-weight: 750;
+}
+
 .speedRow {
   display: flex;
   align-items: center;

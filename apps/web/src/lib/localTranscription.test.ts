@@ -4,6 +4,7 @@ import {
   buildLocalMusicXml,
   detectPitch,
   estimateTempo,
+  estimateTempoFromCandidates,
   selectMelodicLine,
   type LocalNoteEvent,
 } from "./localTranscription";
@@ -62,6 +63,65 @@ describe("guest transcription DSP", () => {
     expect(notes.map((note) => note.midi)).toEqual([72, 74]);
   });
 
+  it("rejects bass candidates below the tenor saxophone concert range", () => {
+    const notes = selectMelodicLine(
+      [
+        {
+          pitchMidi: 37,
+          startTimeSeconds: 0,
+          durationSeconds: 0.5,
+          amplitude: 0.99,
+        },
+        {
+          pitchMidi: 58,
+          startTimeSeconds: 0,
+          durationSeconds: 0.5,
+          amplitude: 0.72,
+        },
+        {
+          pitchMidi: 43,
+          startTimeSeconds: 0.5,
+          durationSeconds: 0.5,
+          amplitude: 0.98,
+        },
+        {
+          pitchMidi: 60,
+          startTimeSeconds: 0.5,
+          durationSeconds: 0.5,
+          amplitude: 0.74,
+        },
+      ],
+      { instrumentId: "tenor_saxophone" },
+    );
+
+    expect(notes.map((note) => note.midi)).toEqual([58, 60]);
+    expect(notes.every((note) => note.midi >= 44 && note.midi <= 76)).toBe(
+      true,
+    );
+  });
+
+  it("keeps tenor altissimo candidates above the conventional F-sharp ceiling", () => {
+    const notes = selectMelodicLine(
+      [
+        {
+          pitchMidi: 82,
+          startTimeSeconds: 0,
+          durationSeconds: 0.5,
+          amplitude: 0.9,
+        },
+        {
+          pitchMidi: 84,
+          startTimeSeconds: 0.5,
+          durationSeconds: 0.5,
+          amplitude: 0.9,
+        },
+      ],
+      { instrumentId: "tenor_saxophone" },
+    );
+
+    expect(notes.map((note) => note.midi)).toEqual([82, 84]);
+  });
+
   it("engraves beamed triplets with visible 3:2 notation", () => {
     const triplet = 1 / 6;
     const notes = [60, 62, 64].map((midi, index) => ({
@@ -90,5 +150,16 @@ describe("guest transcription DSP", () => {
       confidence: 0.9,
     }));
     expect(estimateTempo(notes)).toBe(120);
+  });
+
+  it("estimates tempo from accompaniment-aligned candidate onsets", () => {
+    const candidates = Array.from({ length: 20 }, (_, index) => ({
+      pitchMidi: 58 + (index % 5),
+      startTimeSeconds: index * (2 / 3),
+      durationSeconds: 0.25,
+      amplitude: 0.8,
+    }));
+    expect(estimateTempoFromCandidates(candidates)).toBeGreaterThanOrEqual(88);
+    expect(estimateTempoFromCandidates(candidates)).toBeLessThanOrEqual(92);
   });
 });

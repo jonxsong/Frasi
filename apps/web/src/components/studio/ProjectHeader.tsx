@@ -53,7 +53,7 @@ export function ProjectHeader({
           <span>·</span>
           {audioName ? "Uploaded recording" : "2026"}
           <span>·</span>
-          Tenor Saxophone
+          Tenor Saxophone in B♭
         </p>
       </div>
       <div className={styles.projectActions}>
