@@ -6,7 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from frasi_api.database import get_session
-from frasi_api.models import Recording, TranscriptionJob, TranscriptionProject
+from frasi_api.models import AudioAsset, Recording, TranscriptionJob, TranscriptionProject
 from frasi_api.queue import dispatch_job
 from frasi_api.schemas.transcriptions import (
     INSTRUMENTS,
@@ -42,6 +42,17 @@ async def create_transcription(
     recording = await session.get(Recording, payload.recording_id)
     if recording is None or recording.owner_id != user.id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Recording not found")
+    original_asset = await session.scalar(
+        select(AudioAsset.id).where(
+            AudioAsset.recording_id == recording.id,
+            AudioAsset.kind == "original",
+        )
+    )
+    if original_asset is None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Upload audio you are authorized to use before transcribing this reference",
+        )
     if payload.segment_end_seconds > recording.duration_seconds + 0.05:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,

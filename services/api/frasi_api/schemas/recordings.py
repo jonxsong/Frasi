@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, HttpUrl
 
 
 class RecordingResponse(BaseModel):
@@ -27,5 +27,21 @@ class AudioAssetResponse(BaseModel):
     duration_seconds: float
 
 
+class ExternalReferenceResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    provider: str
+    provider_id: str
+    canonical_url: str
+    embed_url: str | None
+    metadata_json: dict
+
+
+class ExternalRecordingCreate(BaseModel):
+    provider: str
+    url: HttpUrl
+
+
 class RecordingDetail(RecordingResponse):
     assets: list[AudioAssetResponse]
+    external_references: list[ExternalReferenceResponse]

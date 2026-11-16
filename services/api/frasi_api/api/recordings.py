@@ -12,8 +12,18 @@ from sqlalchemy.orm import selectinload
 from frasi_api.audio import AudioValidationError, probe_audio
 from frasi_api.config import get_settings
 from frasi_api.database import get_session
-from frasi_api.models import AudioAsset, Recording, SourceKind
-from frasi_api.schemas.recordings import RecordingDetail, RecordingResponse
+from frasi_api.integrations import (
+    IntegrationUnavailable,
+    InvalidExternalUrl,
+    fetch_spotify,
+    fetch_youtube,
+)
+from frasi_api.models import AudioAsset, ExternalReference, Recording, SourceKind
+from frasi_api.schemas.recordings import (
+    ExternalRecordingCreate,
+    RecordingDetail,
+    RecordingResponse,
+)
 from frasi_api.security import CurrentUser
 from frasi_api.storage import get_storage
 
@@ -102,7 +112,81 @@ async def create_recording(
         if asset is not None:
             await get_storage(settings).delete(asset.storage_key)
         raise
-    await session.refresh(recording, attribute_names=["assets"])
+    await session.refresh(recording, attribute_names=["assets", "external_references"])
+    return recording
+
+
+@router.post("/external", response_model=RecordingDetail, status_code=status.HTTP_201_CREATED)
+async def create_external_recording(
+    payload: ExternalRecordingCreate,
+    user: CurrentUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> Recording:
+    provider = payload.provider.lower()
+    try:
+        if provider == "youtube":
+            track = await fetch_youtube(str(payload.url), settings)
+        elif provider == "spotify":
+            track = await fetch_spotify(str(payload.url), settings)
+        else:
+            raise HTTPException(status_code=422, detail="Provider must be youtube or spotify")
+    except InvalidExternalUrl as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except IntegrationUnavailable as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    recording = Recording(
+        owner_id=user.id,
+        title=track.title,
+        artist=track.artist,
+        album=track.album,
+        year=track.year,
+        duration_seconds=track.duration_seconds,
+        source_kind=track.provider,
+        metadata_json={"licensed_playback_only": True},
+    )
+    recording.external_references.append(
+        ExternalReference(
+            provider=track.provider,
+            provider_id=track.provider_id,
+            canonical_url=track.canonical_url,
+            embed_url=track.embed_url,
+            metadata_json=track.metadata,
+        )
+    )
+    session.add(recording)
+    await session.commit()
+    await session.refresh(recording, attribute_names=["assets", "external_references"])
+    return recording
+
+
+@router.post("/{recording_id}/audio", response_model=RecordingDetail, status_code=201)
+async def attach_authorized_audio(
+    recording_id: str,
+    user: CurrentUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    file: Annotated[UploadFile, File()],
+) -> Recording:
+    recording = await session.scalar(
+        select(Recording)
+        .options(selectinload(Recording.assets), selectinload(Recording.external_references))
+        .where(Recording.id == recording_id)
+    )
+    if recording is None or recording.owner_id != user.id:
+        raise HTTPException(status_code=404, detail="Recording not found")
+    if any(asset.kind == "original" for asset in recording.assets):
+        raise HTTPException(status_code=409, detail="Recording already has authorized audio")
+    asset: AudioAsset | None = None
+    try:
+        asset, duration = await persist_upload(file, user.id, recording.id)
+        recording.duration_seconds = duration
+        recording.assets.append(asset)
+        await session.commit()
+    except Exception:
+        await session.rollback()
+        if asset is not None:
+            await get_storage(settings).delete(asset.storage_key)
+        raise
+    await session.refresh(recording, attribute_names=["assets", "external_references"])
     return recording
 
 
@@ -128,7 +212,7 @@ async def get_recording(
 ) -> Recording:
     recording = await session.scalar(
         select(Recording)
-        .options(selectinload(Recording.assets))
+        .options(selectinload(Recording.assets), selectinload(Recording.external_references))
         .where(Recording.id == recording_id)
     )
     if recording is None or recording.owner_id != user.id:
