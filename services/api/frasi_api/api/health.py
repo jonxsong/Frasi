@@ -1,6 +1,7 @@
 import asyncio
+from collections.abc import Awaitable
 from datetime import UTC, datetime
-from typing import Annotated
+from typing import Annotated, cast
 
 import boto3
 import redis.asyncio as redis
@@ -48,7 +49,7 @@ async def readiness(
             socket_timeout=1,
         )
         try:
-            await redis_client.ping()
+            await cast(Awaitable[bool], redis_client.ping())
         finally:
             await redis_client.aclose()
         if settings.storage_backend == "s3":

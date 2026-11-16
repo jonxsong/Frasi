@@ -12,6 +12,8 @@ twelve-key practice.
 [![Quality](https://github.com/jonxsong/Frasi/actions/workflows/quality.yml/badge.svg)](https://github.com/jonxsong/Frasi/actions/workflows/quality.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-c8a6ff.svg)](LICENSE)
 
+[**Open the live Frasi studio**](https://frasi-jazz-studio.perkyaisle4.chatgpt.site)
+
 </div>
 
 Frasi turns authorized audio into an editable concert-pitch score while preserving the
@@ -50,6 +52,7 @@ Compose.
 The exact acceptance ledger and honest limitations are maintained in
 [`docs/IMPLEMENTATION_STATUS.md`](docs/IMPLEMENTATION_STATUS.md). Synthetic benchmark results
 are in [`docs/BENCHMARKS.md`](docs/BENCHMARKS.md).
+Brand generation provenance is recorded in [`docs/BRAND.md`](docs/BRAND.md).
 
 ## Architecture
 

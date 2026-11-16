@@ -11,6 +11,11 @@ The `.chatgpt.site` frontend surface cannot host Python workers, PostgreSQL, Red
 storage. Configure `NEXT_PUBLIC_API_URL` at build time to the public HTTPS API origin and include
 the frontend origin in `FRASI_CORS_ORIGINS`.
 
+The current public frontend release is available at
+[frasi-jazz-studio.perkyaisle4.chatgpt.site](https://frasi-jazz-studio.perkyaisle4.chatgpt.site).
+It is an interactive static demonstration until a public API origin and managed dependencies are
+provisioned; the complete API/worker/storage path is verified in the local Compose topology.
+
 ## Required production secrets
 
 - `FRASI_JWT_SECRET`: at least 32 random characters; rotate with a planned session invalidation.
