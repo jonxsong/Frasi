@@ -2,8 +2,16 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  applicationName: "frasi.",
   title: "frasi. — Jazz Transcription Studio",
   description: "Every note. Every rhythm. Every phrase.",
+  manifest: "/manifest.webmanifest",
+  keywords: [
+    "jazz transcription",
+    "music notation",
+    "saxophone practice",
+    "harmonic analysis",
+  ],
   icons: {
     icon: "/brand/frasi-emblem.png",
     apple: "/brand/frasi-emblem.png",
