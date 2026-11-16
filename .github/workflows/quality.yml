@@ -38,6 +38,7 @@ jobs:
       - run: python -m pip install -e './services/api[dev]' -e './ml[dev]' -e ./services/worker
       - run: ruff format --check services/api services/worker ml
       - run: ruff check services/api services/worker ml
+      - run: mypy services/api/frasi_api services/worker/frasi_worker ml/frasi_ml
       - run: pytest -q
       - run: python ml/benchmarks/run_synthetic.py --check
 

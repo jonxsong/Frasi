@@ -2,7 +2,7 @@ from fractions import Fraction
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import func, select
+from sqlalchemy import Select, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -17,7 +17,15 @@ from frasi_api.models import (
     Voice,
 )
 from frasi_api.musicxml import build_musicxml
-from frasi_api.schemas.scores import ScorePatch, ScoreResponse
+from frasi_api.schemas.scores import (
+    ChordResponse,
+    MeasureResponse,
+    NoteResponse,
+    ScorePatch,
+    ScoreResponse,
+    TempoResponse,
+    VoiceResponse,
+)
 from frasi_api.security import CurrentUser
 
 from .transcriptions import owned_project
@@ -25,7 +33,7 @@ from .transcriptions import owned_project
 router = APIRouter(tags=["scores"])
 
 
-def revision_query(revision_id: str):
+def revision_query(revision_id: str) -> Select[ScoreRevision]:
     return (
         select(ScoreRevision)
         .where(ScoreRevision.id == revision_id)
@@ -50,48 +58,68 @@ def score_response(revision: ScoreRevision) -> ScoreResponse:
         edit_summary=revision.edit_summary,
         created_at=revision.created_at,
         measures=[
-            {
-                "number": measure.number,
-                "beats": measure.beats,
-                "beat_type": measure.beat_type,
-                "pickup": measure.pickup,
-                "voices": [
-                    {
-                        "number": voice.number,
-                        "notes": [
-                            {
-                                column.name: getattr(note, column.name)
-                                for column in NoteEvent.__table__.columns
-                                if column.name not in {"voice_id"}
-                            }
+            MeasureResponse(
+                number=measure.number,
+                beats=measure.beats,
+                beat_type=measure.beat_type,
+                pickup=measure.pickup,
+                voices=[
+                    VoiceResponse(
+                        number=voice.number,
+                        notes=[
+                            NoteResponse(
+                                id=note.id,
+                                concert_midi=note.concert_midi,
+                                spelling=note.spelling,
+                                is_rest=note.is_rest,
+                                performance_onset_seconds=note.performance_onset_seconds,
+                                performance_offset_seconds=note.performance_offset_seconds,
+                                pitch_confidence=note.pitch_confidence,
+                                onset_confidence=note.onset_confidence,
+                                beat_numerator=note.beat_numerator,
+                                beat_denominator=note.beat_denominator,
+                                duration_numerator=note.duration_numerator,
+                                duration_denominator=note.duration_denominator,
+                                tuplet_actual=note.tuplet_actual,
+                                tuplet_normal=note.tuplet_normal,
+                                tie_start=note.tie_start,
+                                tie_stop=note.tie_stop,
+                                articulation=note.articulation,
+                            )
                             for note in sorted(
                                 voice.notes,
                                 key=lambda item: item.beat_numerator / item.beat_denominator,
                             )
                         ],
-                    }
+                    )
                     for voice in sorted(measure.voices, key=lambda item: item.number)
                 ],
-                "chords": [
-                    {
-                        column.name: getattr(chord, column.name)
-                        for column in ChordEvent.__table__.columns
-                        if column.name not in {"measure_id"}
-                    }
+                chords=[
+                    ChordResponse(
+                        id=chord.id,
+                        beat_numerator=chord.beat_numerator,
+                        beat_denominator=chord.beat_denominator,
+                        symbol=chord.symbol,
+                        source=chord.source,
+                        confidence=chord.confidence,
+                        locked=chord.locked,
+                    )
                     for chord in sorted(
                         measure.chord_events,
                         key=lambda item: item.beat_numerator / item.beat_denominator,
                     )
                 ],
-            }
+            )
             for measure in sorted(revision.measures, key=lambda item: item.number)
         ],
         tempo_map=[
-            {
-                column.name: getattr(tempo, column.name)
-                for column in TempoEvent.__table__.columns
-                if column.name not in {"id", "revision_id"}
-            }
+            TempoResponse(
+                at_seconds=tempo.at_seconds,
+                measure_number=tempo.measure_number,
+                beat_numerator=tempo.beat_numerator,
+                beat_denominator=tempo.beat_denominator,
+                bpm=tempo.bpm,
+            )
             for tempo in sorted(revision.tempo_events, key=lambda item: item.at_seconds)
         ],
     )
@@ -220,10 +248,10 @@ async def patch_score(
             new_voice = Voice(number=voice.number)
             new_measure.voices.append(new_voice)
             for note in voice.notes:
-                update = note_updates.get(note.id)
+                note_update = note_updates.get(note.id)
                 values = (
-                    update.model_dump(exclude={"note_id"}, exclude_unset=True)
-                    if update is not None
+                    note_update.model_dump(exclude={"note_id"}, exclude_unset=True)
+                    if note_update is not None
                     else {}
                 )
                 new_voice.notes.append(_copy_note(note, values))
@@ -242,32 +270,36 @@ async def patch_score(
         raise HTTPException(status_code=422, detail="A chord does not belong to this revision")
 
     for chord_id, chord in old_chords.items():
-        update = chord_updates_by_id.get(chord_id)
-        if update is not None and update.delete:
+        chord_update = chord_updates_by_id.get(chord_id)
+        if chord_update is not None and chord_update.delete:
             continue
-        target_measure = update.measure_number if update else chord.measure.number
+        target_measure = chord_update.measure_number if chord_update else chord.measure.number
         destination = old_to_new_measures.get(target_measure)
         if destination is None:
             raise HTTPException(status_code=422, detail="Chord measure does not exist")
         destination.chord_events.append(
             ChordEvent(
-                beat_numerator=update.beat_numerator if update else chord.beat_numerator,
-                beat_denominator=update.beat_denominator if update else chord.beat_denominator,
-                symbol=update.symbol if update else chord.symbol,
-                source="user" if update else chord.source,
-                confidence=1.0 if update else chord.confidence,
-                locked=bool(update) or chord.locked,
+                beat_numerator=(
+                    chord_update.beat_numerator if chord_update else chord.beat_numerator
+                ),
+                beat_denominator=(
+                    chord_update.beat_denominator if chord_update else chord.beat_denominator
+                ),
+                symbol=(chord_update.symbol or chord.symbol) if chord_update else chord.symbol,
+                source="user" if chord_update else chord.source,
+                confidence=1.0 if chord_update else chord.confidence,
+                locked=bool(chord_update) or chord.locked,
             )
         )
-    for update in (item for item in payload.chord_updates if item.chord_id is None):
-        destination = old_to_new_measures.get(update.measure_number)
+    for new_chord_update in (item for item in payload.chord_updates if item.chord_id is None):
+        destination = old_to_new_measures.get(new_chord_update.measure_number)
         if destination is None:
             raise HTTPException(status_code=422, detail="Chord measure does not exist")
         destination.chord_events.append(
             ChordEvent(
-                beat_numerator=update.beat_numerator,
-                beat_denominator=update.beat_denominator,
-                symbol=update.symbol or "",
+                beat_numerator=new_chord_update.beat_numerator,
+                beat_denominator=new_chord_update.beat_denominator,
+                symbol=new_chord_update.symbol or "",
                 source="user",
                 confidence=1.0,
                 locked=True,

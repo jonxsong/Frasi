@@ -34,7 +34,7 @@ class ExternalReferenceResponse(BaseModel):
     provider_id: str
     canonical_url: str
     embed_url: str | None
-    metadata_json: dict
+    metadata_json: dict[str, object]
 
 
 class ExternalRecordingCreate(BaseModel):

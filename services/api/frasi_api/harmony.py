@@ -1,5 +1,5 @@
 import re
-from collections import Counter
+from collections.abc import Mapping
 from dataclasses import dataclass
 
 from .models import ScoreRevision
@@ -37,7 +37,7 @@ def _rotate(profile: tuple[float, ...], tonic: int) -> tuple[float, ...]:
     return tuple(profile[(pc - tonic) % 12] for pc in range(12))
 
 
-def estimate_key(pitch_weights: Counter[int]) -> tuple[int, str, float]:
+def estimate_key(pitch_weights: Mapping[int, float]) -> tuple[int, str, float]:
     if not pitch_weights:
         return 0, "major", 0.0
     total = sum(pitch_weights.values())
@@ -49,7 +49,8 @@ def estimate_key(pitch_weights: Counter[int]) -> tuple[int, str, float]:
             ("dorian", DORIAN_PROFILE),
         ):
             score = sum(
-                pitch_weights[pc] * weight for pc, weight in enumerate(_rotate(profile, tonic))
+                pitch_weights.get(pc, 0.0) * weight
+                for pc, weight in enumerate(_rotate(profile, tonic))
             )
             candidates.append((score / total, tonic, mode))
     candidates.sort(reverse=True)
@@ -106,7 +107,7 @@ def _roman(root: int, tonic: int, quality: str) -> str:
     return degree
 
 
-def _suggest_chord(pitches: Counter[int], tonic: int, mode: str) -> tuple[str, float]:
+def _suggest_chord(pitches: Mapping[int, float], tonic: int, mode: str) -> tuple[str, float]:
     if not pitches:
         return f"{PITCH_NAMES[tonic]}maj7", 0.25
     scale = (0, 2, 4, 5, 7, 9, 11) if mode == "major" else (0, 2, 3, 5, 7, 9, 10)
@@ -133,16 +134,17 @@ def _suggest_chord(pitches: Counter[int], tonic: int, mode: str) -> tuple[str, f
 
 
 def analyze_revision(revision: ScoreRevision) -> HarmonyAnalysis:
-    global_pitches: Counter[int] = Counter()
-    measure_pitches: dict[int, Counter[int]] = {}
+    global_pitches: dict[int, float] = {}
+    measure_pitches: dict[int, dict[int, float]] = {}
     for measure in revision.measures:
-        weights: Counter[int] = Counter()
+        weights: dict[int, float] = {}
         for voice in measure.voices:
             for note in voice.notes:
                 if not note.is_rest and note.concert_midi is not None:
                     duration = note.duration_numerator / note.duration_denominator
-                    weights[note.concert_midi % 12] += duration
-                    global_pitches[note.concert_midi % 12] += duration
+                    pitch_class = note.concert_midi % 12
+                    weights[pitch_class] = weights.get(pitch_class, 0.0) + duration
+                    global_pitches[pitch_class] = global_pitches.get(pitch_class, 0.0) + duration
         measure_pitches[measure.number] = weights
     tonic, mode, key_confidence = estimate_key(global_pitches)
 

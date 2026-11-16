@@ -1,3 +1,4 @@
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from time import perf_counter
 from uuid import uuid4
@@ -5,6 +6,7 @@ from uuid import uuid4
 import structlog
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import RequestResponseEndpoint
 
 from .api.router import api_router
 from .config import get_settings
@@ -16,7 +18,7 @@ logger = structlog.get_logger()
 
 
 @asynccontextmanager
-async def lifespan(_: FastAPI):
+async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     settings.storage_root.mkdir(parents=True, exist_ok=True)
     await logger.ainfo("service_started", environment=settings.env)
     yield
@@ -43,7 +45,7 @@ app.add_middleware(
 
 
 @app.middleware("http")
-async def request_context(request: Request, call_next) -> Response:
+async def request_context(request: Request, call_next: RequestResponseEndpoint) -> Response:
     request_id = request.headers.get("X-Request-ID", str(uuid4()))
     started = perf_counter()
     structlog.contextvars.bind_contextvars(request_id=request_id)

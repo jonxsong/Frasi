@@ -35,7 +35,7 @@ def load_audio(
     peak = float(np.max(np.abs(signal)))
     if peak < 1e-5:
         raise AudioDecodeError("Audio segment is silent")
-    return np.asarray(signal / max(peak, 1.0), dtype=np.float32), sample_rate
+    return np.asarray(signal / max(peak, 1.0), dtype=np.float32), int(sample_rate)
 
 
 def separate_harmonic(signal: np.ndarray) -> tuple[np.ndarray, np.ndarray]:

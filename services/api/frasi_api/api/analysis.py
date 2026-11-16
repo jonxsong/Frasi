@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from frasi_api.database import get_session
 from frasi_api.harmony import analyze_revision
-from frasi_api.schemas.analysis import HarmonyResponse
+from frasi_api.schemas.analysis import ChordInsightResponse, HarmonyResponse
 from frasi_api.security import CurrentUser
 
 from .scores import load_owned_revision
@@ -32,7 +32,19 @@ async def get_analysis(
         key=analysis.key,
         mode=analysis.mode,
         key_confidence=analysis.key_confidence,
-        chords=[item.__dict__ for item in analysis.chords],
+        chords=[
+            ChordInsightResponse(
+                measure=item.measure,
+                beat=item.beat,
+                symbol=item.symbol,
+                roman_numeral=item.roman_numeral,
+                confidence=item.confidence,
+                source=item.source,
+                likely_scales=list(item.likely_scales),
+                explanation=item.explanation,
+            )
+            for item in analysis.chords
+        ],
         patterns=list(analysis.patterns),
         caveats=list(analysis.caveats),
     )

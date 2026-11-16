@@ -60,7 +60,7 @@ class VocabularyResponse(BaseModel):
     original_instrument_id: str
     tags: list[str]
     notes: str | None
-    score_snapshot: dict
+    score_snapshot: dict[str, object]
     created_at: datetime
     updated_at: datetime
 

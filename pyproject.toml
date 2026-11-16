@@ -15,3 +15,35 @@ testpaths = ["services/api/tests", "services/worker/tests", "ml/tests"]
 python_version = "3.12"
 strict = true
 warn_unused_ignores = true
+
+[[tool.mypy.overrides]]
+module = [
+  "boto3",
+  "boto3.*",
+  "botocore",
+  "botocore.*",
+  "celery",
+  "celery.*",
+  "music21",
+  "music21.*",
+  "reportlab",
+  "reportlab.*",
+  "soundfile",
+  "soundfile.*",
+]
+ignore_missing_imports = true
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = [
+  "frasi_api.api.health",
+  "frasi_api.exports",
+  "frasi_api.queue",
+  "frasi_api.rate_limit",
+  "frasi_api.storage",
+  "frasi_ml.musicxml",
+  "frasi_worker.celery_app",
+  "frasi_worker.tasks",
+]
+disallow_untyped_calls = false
+disallow_untyped_decorators = false

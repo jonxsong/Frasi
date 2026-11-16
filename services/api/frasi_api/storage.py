@@ -1,7 +1,7 @@
 import asyncio
 import shutil
 from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
+from contextlib import AbstractAsyncContextManager, asynccontextmanager
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 from typing import Protocol
@@ -17,13 +17,7 @@ class AssetStorage(Protocol):
 
     async def delete(self, key: str) -> None: ...
 
-    def materialize(self, key: str) -> "AsyncAssetContext": ...
-
-
-class AsyncAssetContext(Protocol):
-    async def __aenter__(self) -> Path: ...
-
-    async def __aexit__(self, exc_type: object, exc: object, traceback: object) -> None: ...
+    def materialize(self, key: str) -> AbstractAsyncContextManager[Path]: ...
 
 
 class FilesystemStorage:

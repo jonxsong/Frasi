@@ -172,5 +172,5 @@ async def get_practice_summary(
         duration_seconds=sum(item.duration_seconds for item in sessions),
         practiced_keys=sorted({key for item in sessions for key in item.practiced_keys}),
         mastered_keys=sorted({key for item in sessions for key in item.mastered_keys}),
-        recent_sessions=sessions[:10],
+        recent_sessions=[PracticeResponse.model_validate(item) for item in sessions[:10]],
     )
