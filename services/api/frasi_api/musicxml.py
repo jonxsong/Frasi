@@ -2,6 +2,7 @@ import re
 from fractions import Fraction
 from xml.etree import ElementTree as ET
 
+from .chords import parse_chord_notation
 from .models import Measure, NoteEvent, TempoEvent
 
 DIVISIONS = 480
@@ -54,31 +55,21 @@ def _note_type(ticks: int) -> tuple[str, bool]:
 
 
 def _append_harmony(parent: ET.Element, symbol: str, offset: int) -> None:
-    match = re.fullmatch(r"([A-G])([#b]?)(.*)", symbol.strip())
-    if not match:
+    notation = parse_chord_notation(symbol)
+    if not notation:
         return
-    root_step, accidental, suffix = match.groups()
     harmony = ET.SubElement(parent, "harmony")
     root = ET.SubElement(harmony, "root")
-    ET.SubElement(root, "root-step").text = root_step
-    if accidental:
-        ET.SubElement(root, "root-alter").text = "1" if accidental == "#" else "-1"
-    kinds = {
-        "": "major",
-        "maj7": "major-seventh",
-        "M7": "major-seventh",
-        "m": "minor",
-        "m7": "minor-seventh",
-        "7": "dominant",
-        "dim": "diminished",
-        "dim7": "diminished-seventh",
-        "m7b5": "half-diminished",
-        "6": "major-sixth",
-        "m6": "minor-sixth",
-        "sus4": "suspended-fourth",
-    }
-    kind = ET.SubElement(harmony, "kind", text=suffix or "major")
-    kind.text = kinds.get(suffix, "other")
+    ET.SubElement(root, "root-step").text = notation.root_step
+    if notation.root_alter:
+        ET.SubElement(root, "root-alter").text = str(notation.root_alter)
+    kind = ET.SubElement(harmony, "kind", text=notation.text)
+    kind.text = notation.kind
+    if notation.bass_step:
+        bass = ET.SubElement(harmony, "bass")
+        ET.SubElement(bass, "bass-step").text = notation.bass_step
+        if notation.bass_alter:
+            ET.SubElement(bass, "bass-alter").text = str(notation.bass_alter)
     if offset:
         ET.SubElement(harmony, "offset").text = str(offset)
 

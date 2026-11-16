@@ -109,9 +109,27 @@ export function transposeMusicXml(
       node.textContent = String(spelling.alter);
       root.append(node);
     }
+    const bass = harmony.querySelector("bass");
+    if (bass) {
+      const bassStep = text(bass, "bass-step") ?? "C";
+      const bassAlter = Number(text(bass, "bass-alter") ?? 0);
+      const bassPitchClass =
+        ((NATURAL[bassStep] ?? 0) + bassAlter + semitones + 120) % 12;
+      const bassSpelling = splitSpelling(names[bassPitchClass] ?? "C");
+      setText(bass, "bass-step", bassSpelling.step);
+      const existingBassAlter = bass.querySelector("bass-alter");
+      if (bassSpelling.alter === 0) existingBassAlter?.remove();
+      else if (existingBassAlter)
+        existingBassAlter.textContent = String(bassSpelling.alter);
+      else {
+        const node = document.createElement("bass-alter");
+        node.textContent = String(bassSpelling.alter);
+        bass.append(node);
+      }
+    }
     const kind = harmony.querySelector("kind");
     const originalSymbol = kind?.getAttribute("text");
-    if (kind && originalSymbol)
+    if (kind && originalSymbol && /^[A-G][#b♯♭]?/.test(originalSymbol))
       kind.setAttribute(
         "text",
         transposeChord(originalSymbol, semitones, normalizedKey),

@@ -3,7 +3,7 @@ from pathlib import Path
 from httpx import AsyncClient
 from test_scores import create_seeded_score
 
-from frasi_api.harmony import analyze_revision
+from frasi_api.harmony import analyze_revision, parse_chord
 from frasi_api.models import ChordEvent, Measure, NoteEvent, ScoreRevision, Voice
 
 
@@ -59,3 +59,9 @@ async def test_analysis_endpoint_uses_owned_current_revision(
     assert body["chords"][0]["symbol"] == "Cm7"
     assert body["chords"][0]["source"] == "estimated"
     assert body["chords"][0]["likely_scales"]
+
+
+def test_unicode_jazz_chord_aliases_preserve_harmonic_quality() -> None:
+    assert parse_chord("C△7") == (0, "major")
+    assert parse_chord("B°7") == (11, "diminished")
+    assert parse_chord("Eø7") == (4, "half-diminished")

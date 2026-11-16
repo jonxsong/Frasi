@@ -125,6 +125,7 @@ async def test_score_edit_creates_revision_and_preserves_performance_time(
     assert score["parent_revision_id"] == revision_id
     assert "<work-title>Editable phrase</work-title>" in score["musicxml"]
     assert "<root-step>G</root-step>" in score["musicxml"]
+    assert '<kind text="7">dominant</kind>' in score["musicxml"]
     updated = score["measures"][0]["voices"][0]["notes"][0]
     assert updated["concert_midi"] == 62
     assert updated["performance_onset_seconds"] == 0.123

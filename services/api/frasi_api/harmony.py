@@ -1,7 +1,7 @@
-import re
 from collections.abc import Mapping
 from dataclasses import dataclass
 
+from .chords import parse_chord_notation
 from .models import ScoreRevision
 
 PITCH_NAMES = ("C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B")
@@ -61,24 +61,19 @@ def estimate_key(pitch_weights: Mapping[int, float]) -> tuple[int, str, float]:
 
 
 def parse_chord(symbol: str) -> tuple[int, str]:
-    match = re.match(r"^([A-G])([#b]?)(.*)$", symbol.strip())
-    if not match:
+    notation = parse_chord_notation(symbol)
+    if not notation:
         return 0, "other"
-    step, accidental, suffix = match.groups()
-    root = {"C": 0, "D": 2, "E": 4, "F": 5, "G": 7, "A": 9, "B": 11}[step]
-    root = (root + {"#": 1, "b": -1, "": 0}[accidental]) % 12
-    quality = (
-        "half-diminished"
-        if "m7b5" in suffix or "ø" in suffix
-        else "diminished"
-        if "dim" in suffix or "°" in suffix
-        else "minor"
-        if suffix.startswith("m") and not suffix.startswith("maj")
-        else "dominant"
-        if suffix.startswith("7") or suffix.startswith("9") or suffix.startswith("13")
-        else "major"
-    )
-    return root, quality
+    root = {
+        "C": 0,
+        "D": 2,
+        "E": 4,
+        "F": 5,
+        "G": 7,
+        "A": 9,
+        "B": 11,
+    }[notation.root_step]
+    return (root + notation.root_alter) % 12, notation.quality
 
 
 def _scale_choices(symbol: str, root: int, quality: str) -> tuple[str, ...]:

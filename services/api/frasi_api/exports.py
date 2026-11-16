@@ -8,6 +8,7 @@ from reportlab.lib.colors import HexColor
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen.canvas import Canvas
 
+from .chords import format_jazz_chord
 from .models import ScoreRevision
 
 TICKS_PER_QUARTER = 480
@@ -104,6 +105,44 @@ def _diatonic_position(spelling: str | None, midi: int | None) -> int:
     return (value // 12 - 1 - 4) * 7 + step_index - 2
 
 
+def _ledger_positions(position: int) -> tuple[int, ...]:
+    if position <= -2:
+        lowest_line = position if position % 2 == 0 else position + 1
+        return tuple(range(-2, lowest_line - 1, -2))
+    if position >= 10:
+        return tuple(range(10, position + 1, 2))
+    return ()
+
+
+def _draw_jazz_chord(canvas: Canvas, x: float, y: float, symbol: str) -> None:
+    cursor = x
+    canvas.saveState()
+    canvas.setFont("Helvetica-Bold", 9)
+    canvas.setLineWidth(0.8)
+    for character in format_jazz_chord(symbol):
+        if character == "△":
+            path = canvas.beginPath()
+            path.moveTo(cursor, y)
+            path.lineTo(cursor + 4, y + 7)
+            path.lineTo(cursor + 8, y)
+            path.close()
+            canvas.drawPath(path, fill=0, stroke=1)
+            cursor += 10
+        elif character in {"°", "ø"}:
+            canvas.circle(cursor + 3, y + 5.5, 2.8, fill=0, stroke=1)
+            if character == "ø":
+                canvas.line(cursor, y + 2, cursor + 6, y + 9)
+            cursor += 7
+        elif character == "−":
+            canvas.line(cursor, y + 4, cursor + 6, y + 4)
+            cursor += 8
+        else:
+            printable = {"♭": "b", "♯": "#"}.get(character, character)
+            canvas.drawString(cursor, y, printable)
+            cursor += canvas.stringWidth(printable, "Helvetica-Bold", 9)
+    canvas.restoreState()
+
+
 def render_pdf(revision: ScoreRevision, title: str) -> bytes:
     output = BytesIO()
     width, height = letter
@@ -147,9 +186,12 @@ def render_pdf(revision: ScoreRevision, title: str) -> bytes:
                         1, measure.beats * 4 / measure.beat_type
                     )
                     canvas.setFillColor(HexColor("#5F329B"))
-                    canvas.setFont("Helvetica-Bold", 9)
-                    canvas.drawString(
-                        start_x + 8 + ratio * (measure_width - 16), y + 42, chord.symbol
+                    canvas.setStrokeColor(HexColor("#5F329B"))
+                    _draw_jazz_chord(
+                        canvas,
+                        start_x + 8 + ratio * (measure_width - 16),
+                        y + 42,
+                        chord.symbol,
                     )
                 for voice in measure.voices:
                     for note in voice.notes:
@@ -163,6 +205,11 @@ def render_pdf(revision: ScoreRevision, title: str) -> bytes:
                             continue
                         position = _diatonic_position(note.spelling, note.concert_midi)
                         note_y = y + position * staff_gap / 2
+                        canvas.setStrokeColor(HexColor("#17131E"))
+                        canvas.setLineWidth(0.65)
+                        for ledger_position in _ledger_positions(position):
+                            ledger_y = y + ledger_position * staff_gap / 2
+                            canvas.line(x - 6.5, ledger_y, x + 7.5, ledger_y)
                         canvas.saveState()
                         canvas.setFillColor(HexColor("#17131E"))
                         canvas.translate(x, note_y)

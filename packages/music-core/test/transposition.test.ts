@@ -63,4 +63,8 @@ describe("practice transposition", () => {
   it("uses flat spelling in flat keys", () => {
     expect(transposeChord("D7alt", 1, "Eb")).toBe("Eb7alt");
   });
+
+  it("transposes slash-chord bass notes independently", () => {
+    expect(transposeChord("Cmaj7/E", 2, "D")).toBe("Dmaj7/F#");
+  });
 });

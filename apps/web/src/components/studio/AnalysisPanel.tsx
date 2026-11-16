@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { BookOpen, PencilLine, Sparkles } from "lucide-react";
+import { formatJazzChordSymbol } from "@frasi/music-core";
 import { ApiError, apiFetch, type HarmonyResponse } from "@/lib/api";
 import { useStudioStore } from "@/store/studio";
 import styles from "./Studio.module.css";
@@ -41,7 +42,7 @@ export function AnalysisPanel() {
         </h3>
         <p>
           {analysis?.patterns[0] ??
-            "The demo phrase targets guide tones through Dm7–G7–Cmaj7. Analysis is deterministic and score-derived."}
+            "The demo phrase targets guide tones through D−7–G7–C△7. Analysis is deterministic and score-derived."}
         </p>
       </article>
       <article>
@@ -50,7 +51,7 @@ export function AnalysisPanel() {
         </span>
         <h3>
           {first
-            ? `${first.symbol} · ${first.roman_numeral}`
+            ? `${formatJazzChordSymbol(first.symbol)} · ${first.roman_numeral}`
             : "Ascending tension, descending answer"}
         </h3>
         <p>

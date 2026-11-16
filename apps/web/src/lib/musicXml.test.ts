@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest";
 import { transposeMusicXml } from "./musicXml";
 
-const xml = `<?xml version="1.0"?><score-partwise><part><measure><attributes><key><fifths>0</fifths></key></attributes><harmony><root><root-step>C</root-step></root><kind text="Cmaj7">major-seventh</kind></harmony><note><pitch><step>B</step><octave>4</octave></pitch></note></measure></part></score-partwise>`;
+const xml = `<?xml version="1.0"?><score-partwise><part><measure><attributes><key><fifths>0</fifths></key></attributes><harmony><root><root-step>C</root-step></root><kind text="△7">major-seventh</kind><bass><bass-step>E</bass-step></bass></harmony><note><pitch><step>B</step><octave>4</octave></pitch></note></measure></part></score-partwise>`;
 
 describe("MusicXML display transposition", () => {
   it("transposes pitch, octave, harmony, and key signature", () => {
@@ -11,7 +11,10 @@ describe("MusicXML display transposition", () => {
       "<step>C</step><alter>1</alter><octave>5</octave>",
     );
     expect(result).toContain("<root-step>D</root-step>");
-    expect(result).toContain('text="Dmaj7"');
+    expect(result).toContain('text="△7"');
+    expect(result).toContain(
+      "<bass><bass-step>F</bass-step><bass-alter>1</bass-alter></bass>",
+    );
     expect(result).toContain("<fifths>2</fifths>");
   });
 

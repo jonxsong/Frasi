@@ -1,3 +1,5 @@
+import { formatJazzChordSuffix } from "@frasi/music-core";
+
 export interface DemoMeasure {
   chord: string;
   notes: Array<{
@@ -68,7 +70,7 @@ const phrase: DemoMeasure[] = [
       { step: "D", octave: 5, duration: 1, type: "eighth" },
       { step: "D", alter: -1, octave: 5, duration: 1, type: "eighth" },
       { step: "C", octave: 5, duration: 2, type: "quarter" },
-      { step: "A", octave: 4, duration: 2, type: "quarter" },
+      { step: "C", octave: 4, duration: 2, type: "quarter" },
     ],
   },
   {
@@ -122,13 +124,13 @@ const phrase: DemoMeasure[] = [
     ],
   },
   {
-    chord: "A7",
+    chord: "Bdim7",
     notes: [
       { step: "C", alter: 1, octave: 5, duration: 2, type: "quarter" },
       { step: "E", octave: 5, duration: 1, type: "eighth" },
       { step: "G", octave: 5, duration: 1, type: "eighth" },
       { step: "A", octave: 5, duration: 2, type: "quarter" },
-      { step: "D", octave: 5, duration: 2, type: "quarter" },
+      { step: "C", octave: 6, duration: 2, type: "quarter" },
     ],
   },
 ];
@@ -137,8 +139,25 @@ function harmony(symbol: string): string {
   const match = /^([A-G])([#b]?)(.*)$/.exec(symbol);
   const step = match?.[1] ?? "C";
   const accidental = match?.[2] === "#" ? 1 : match?.[2] === "b" ? -1 : 0;
-  const kind = match?.[3] ?? "";
-  return `<harmony><root><root-step>${step}</root-step>${accidental ? `<root-alter>${accidental}</root-alter>` : ""}</root><kind text="${symbol}">${kind.includes("m") && !kind.includes("maj") ? "minor-seventh" : kind.includes("7") ? "dominant" : "major"}</kind></harmony>`;
+  const suffix = match?.[3] ?? "";
+  const normalized = suffix.replaceAll("△", "maj").replaceAll("°", "dim");
+  const kind =
+    normalized === "m7b5"
+      ? "half-diminished"
+      : normalized === "dim7"
+        ? "diminished-seventh"
+        : normalized === "dim"
+          ? "diminished"
+          : normalized === "maj7"
+            ? "major-seventh"
+            : normalized.startsWith("m")
+              ? normalized.includes("7")
+                ? "minor-seventh"
+                : "minor"
+              : normalized.startsWith("7")
+                ? "dominant"
+                : "major";
+  return `<harmony><root><root-step>${step}</root-step>${accidental ? `<root-alter>${accidental}</root-alter>` : ""}</root><kind text="${formatJazzChordSuffix(suffix)}">${kind}</kind></harmony>`;
 }
 
 export function createDemoMusicXml(
