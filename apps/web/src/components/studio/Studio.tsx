@@ -8,6 +8,7 @@ import { ProjectHeader } from "./ProjectHeader";
 import { ControlSidebar } from "./ControlSidebar";
 import { ScoreFooter } from "./ScoreFooter";
 import { ScorePanel } from "./ScorePanel";
+import { Transport } from "./Transport";
 import { Waveform } from "./Waveform";
 import styles from "./Studio.module.css";
 
@@ -53,6 +54,7 @@ export function Studio() {
           {toast}
         </div>
       )}
+      <Transport />
     </main>
   );
 }

@@ -28,6 +28,7 @@ export function Waveform() {
   const selectionEnd = useStudioStore((state) => state.selectionEnd);
   const loopEnabled = useStudioStore((state) => state.loopEnabled);
   const speed = useStudioStore((state) => state.speed);
+  const volume = useStudioStore((state) => state.volume);
   const togglePlaying = useStudioStore((state) => state.togglePlaying);
   const setPlaying = useStudioStore((state) => state.setPlaying);
   const setCurrentTime = useStudioStore((state) => state.setCurrentTime);
@@ -133,6 +134,15 @@ export function Waveform() {
   useEffect(() => {
     waveRef.current?.setPlaybackRate(speed);
   }, [speed]);
+
+  useEffect(() => {
+    waveRef.current?.setVolume(volume);
+  }, [volume]);
+
+  useEffect(() => {
+    const wave = waveRef.current;
+    if (wave && Math.abs(wave.getCurrentTime() - currentTime) > 0.3) wave.setTime(currentTime);
+  }, [currentTime]);
 
   useEffect(() => {
     if (audioUrl || !isPlaying) return;

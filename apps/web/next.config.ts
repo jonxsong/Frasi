@@ -6,6 +6,15 @@ const nextConfig: NextConfig = {
   experimental: {
     optimizePackageImports: ["lucide-react"],
   },
+  webpack(config, { isServer }) {
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        module: false,
+      };
+    }
+    return config;
+  },
 };
 
 export default nextConfig;
