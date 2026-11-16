@@ -184,7 +184,10 @@ export function Waveform() {
   const visiblePeaks = useMemo(
     () =>
       demoPeaks.map((peak, index) => (
-        <i key={index} style={{ height: `${Math.max(4, peak * 54)}px` }} />
+        <i
+          key={index}
+          style={{ height: `${Math.max(4, peak * 54).toFixed(3)}px` }}
+        />
       )),
     [],
   );

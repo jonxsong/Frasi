@@ -5,6 +5,7 @@ const siteExport = process.env.FRASI_SITE_EXPORT === "1";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  allowedDevOrigins: ["127.0.0.1"],
   output: siteExport ? "export" : "standalone",
   outputFileTracingRoot: path.join(process.cwd(), "../.."),
   images: siteExport ? { unoptimized: true } : undefined,
