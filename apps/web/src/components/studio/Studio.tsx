@@ -1,9 +1,12 @@
 "use client";
 
+import { Header } from "./Header";
+import styles from "./Studio.module.css";
+
 export function Studio() {
   return (
-    <main style={{ minHeight: "100vh", display: "grid", placeItems: "center" }}>
-      <p>frasi. studio is loading…</p>
+    <main className={styles.studio}>
+      <Header />
     </main>
   );
 }

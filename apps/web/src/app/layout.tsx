@@ -4,6 +4,10 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "frasi. — Jazz Transcription Studio",
   description: "Every note. Every rhythm. Every phrase.",
+  icons: {
+    icon: "/brand/frasi-emblem.png",
+    apple: "/brand/frasi-emblem.png",
+  },
 };
 
 export const viewport: Viewport = {

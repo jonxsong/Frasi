@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="./apps/web/public/brand/frasi-emblem.png" alt="Frasi emblem" width="164" />
+
 # frasi.
 
 ### Every note. Every rhythm. Every phrase.
