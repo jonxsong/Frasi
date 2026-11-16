@@ -5,6 +5,8 @@ import { useProjectActions } from "@/hooks/useProjectActions";
 import { Header } from "./Header";
 import { NewTranscriptionDialog } from "./NewTranscriptionDialog";
 import { ProjectHeader } from "./ProjectHeader";
+import { ControlSidebar } from "./ControlSidebar";
+import { ScoreFooter } from "./ScoreFooter";
 import { ScorePanel } from "./ScorePanel";
 import { Waveform } from "./Waveform";
 import styles from "./Studio.module.css";
@@ -32,7 +34,13 @@ export function Studio() {
           onExport={actions.exportMusicXml}
         />
         <Waveform />
-        <ScorePanel />
+        <div className={styles.studioGrid}>
+          <div className={styles.mainColumn}>
+            <ScorePanel />
+            <ScoreFooter />
+          </div>
+          <ControlSidebar />
+        </div>
       </div>
       {newProjectOpen && (
         <NewTranscriptionDialog
