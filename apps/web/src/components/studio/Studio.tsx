@@ -5,6 +5,7 @@ import { useProjectActions } from "@/hooks/useProjectActions";
 import { Header } from "./Header";
 import { NewTranscriptionDialog } from "./NewTranscriptionDialog";
 import { ProjectHeader } from "./ProjectHeader";
+import { Waveform } from "./Waveform";
 import styles from "./Studio.module.css";
 
 export function Studio() {
@@ -29,6 +30,7 @@ export function Studio() {
           onShare={actions.share}
           onExport={actions.exportMusicXml}
         />
+        <Waveform />
       </div>
       {newProjectOpen && (
         <NewTranscriptionDialog

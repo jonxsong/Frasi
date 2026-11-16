@@ -473,6 +473,166 @@
   font-size: 13px;
 }
 
+.waveformRow {
+  min-height: 84px;
+  display: grid;
+  grid-template-columns: 52px 96px minmax(220px, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  margin-top: 6px;
+}
+
+.wavePlay {
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(208, 169, 250, 0.45);
+  border-radius: 50%;
+  background: linear-gradient(145deg, #aa68eb, #6c36c2);
+  color: white;
+  cursor: pointer;
+  box-shadow: 0 8px 22px rgba(78, 35, 139, 0.32);
+}
+
+.waveTime {
+  color: #e4dfeb;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.waveTrack {
+  position: relative;
+  height: 68px;
+  min-width: 0;
+  cursor: crosshair;
+  user-select: none;
+}
+
+.realWave,
+.hiddenWave {
+  position: absolute;
+  inset: 6px 0 4px;
+}
+
+.hiddenWave {
+  display: none;
+}
+
+.demoWave {
+  position: absolute;
+  inset: 5px 0;
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  opacity: 0.85;
+}
+
+.demoWave i {
+  min-width: 1px;
+  flex: 1;
+  border-radius: 2px;
+  background: #515568;
+}
+
+.waveSelection {
+  position: absolute;
+  z-index: 2;
+  top: 3px;
+  bottom: 3px;
+  border: 1px solid #ad70ec;
+  background: rgba(134, 70, 204, 0.32);
+  box-shadow: inset 0 0 22px rgba(111, 51, 184, 0.22);
+  pointer-events: none;
+}
+
+.waveHandle {
+  position: absolute;
+  z-index: 4;
+  top: 1px;
+  bottom: 1px;
+  width: 10px;
+  padding: 0;
+  transform: translateX(-50%);
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  cursor: ew-resize;
+}
+
+.waveHandle::before,
+.waveHandle::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #f4ebfa;
+}
+
+.waveHandle::before {
+  inset-block: 5px;
+  width: 2px;
+}
+
+.waveHandle::after {
+  top: 2px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.selectionLabel {
+  position: absolute;
+  z-index: 5;
+  top: -22px;
+  transform: translateX(-50%);
+  padding: 3px 11px;
+  border: 1px solid rgba(220, 206, 236, 0.4);
+  border-radius: 999px;
+  background: #1d2030;
+  color: #f4eff7;
+  font-size: 11px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.wavePlayhead {
+  position: absolute;
+  z-index: 3;
+  top: 4px;
+  bottom: 4px;
+  width: 1px;
+  background: #e7c7ff;
+  box-shadow: 0 0 7px #c176ff;
+  pointer-events: none;
+}
+
+.waveActions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.waveActions button {
+  height: 37px;
+  min-width: 46px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 0 11px;
+  border: 1px solid var(--line-strong);
+  border-radius: 9px;
+  background: rgba(17, 20, 33, 0.82);
+  cursor: pointer;
+}
+
+.waveActions button:hover,
+.waveActions .waveActionActive {
+  border-color: rgba(199, 155, 244, 0.62);
+  background: rgba(117, 61, 178, 0.2);
+}
+
 @media (max-width: 1000px) {
   .header {
     grid-template-columns: 1fr auto;
@@ -517,6 +677,20 @@
     overflow-x: auto;
     padding-bottom: 4px;
   }
+
+  .waveformRow {
+    grid-template-columns: 48px 82px minmax(180px, 1fr);
+  }
+
+  .wavePlay {
+    width: 48px;
+    height: 48px;
+  }
+
+  .waveActions {
+    grid-column: 1 / -1;
+    justify-content: flex-end;
+  }
 }
 
 @media (max-width: 560px) {
@@ -554,5 +728,20 @@
     height: 39px;
     padding-inline: 12px;
     font-size: 12px;
+  }
+
+  .waveformRow {
+    grid-template-columns: 44px 1fr;
+    gap: 10px;
+    margin-top: 18px;
+  }
+
+  .waveTime {
+    font-size: 12px;
+  }
+
+  .waveTrack {
+    grid-column: 1 / -1;
+    width: 100%;
   }
 }
