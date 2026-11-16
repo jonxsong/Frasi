@@ -11,7 +11,14 @@ import {
 } from "@/lib/api";
 import styles from "./Studio.module.css";
 
-const ACCEPTED_TYPES = ["audio/wav", "audio/mpeg", "audio/flac", "audio/mp4", "audio/ogg", "audio/x-m4a"];
+const ACCEPTED_TYPES = [
+  "audio/wav",
+  "audio/mpeg",
+  "audio/flac",
+  "audio/mp4",
+  "audio/ogg",
+  "audio/x-m4a",
+];
 const ACCEPTED_EXTENSIONS = /\.(wav|mp3|flac|m4a|ogg)$/i;
 const MAX_BYTES = 200 * 1024 * 1024;
 
@@ -25,12 +32,16 @@ function readDuration(url: string): Promise<number> {
     const audio = new Audio();
     audio.preload = "metadata";
     audio.onloadedmetadata = () => resolve(audio.duration);
-    audio.onerror = () => reject(new Error("The browser could not decode this audio file."));
+    audio.onerror = () =>
+      reject(new Error("The browser could not decode this audio file."));
     audio.src = url;
   });
 }
 
-export function NewTranscriptionDialog({ onClose, onNotify }: NewTranscriptionDialogProps) {
+export function NewTranscriptionDialog({
+  onClose,
+  onNotify,
+}: NewTranscriptionDialogProps) {
   const setAudio = useStudioStore((state) => state.setAudio);
   const instrument = useStudioStore((state) => state.instrument);
   const existingRecordingId = useStudioStore((state) => state.recordingId);
@@ -46,7 +57,10 @@ export function NewTranscriptionDialog({ onClose, onNotify }: NewTranscriptionDi
 
   async function handleFile(file: File) {
     setError(null);
-    if (!ACCEPTED_EXTENSIONS.test(file.name) || (file.type && !ACCEPTED_TYPES.includes(file.type))) {
+    if (
+      !ACCEPTED_EXTENSIONS.test(file.name) ||
+      (file.type && !ACCEPTED_TYPES.includes(file.type))
+    ) {
       setError("Choose a WAV, MP3, FLAC, M4A, or OGG recording.");
       return;
     }
@@ -58,10 +72,13 @@ export function NewTranscriptionDialog({ onClose, onNotify }: NewTranscriptionDi
     const url = URL.createObjectURL(file);
     try {
       const duration = await readDuration(url);
-      if (!Number.isFinite(duration) || duration <= 0) throw new Error("Invalid audio duration.");
+      if (!Number.isFinite(duration) || duration <= 0)
+        throw new Error("Invalid audio duration.");
       setAudio(url, file.name, duration);
       if (!accessToken) {
-        onNotify("Audio loaded locally — sign in to run the transcription pipeline");
+        onNotify(
+          "Audio loaded locally — sign in to run the transcription pipeline",
+        );
         onClose();
         return;
       }
@@ -74,23 +91,36 @@ export function NewTranscriptionDialog({ onClose, onNotify }: NewTranscriptionDi
           : "/api/v1/recordings",
         { method: "POST", body: form },
       );
-      setRecording(recording.id, recording.source_kind, recording.title, recording.artist);
-      const project = await apiFetch<ProjectResponse>("/api/v1/transcriptions", {
-        method: "POST",
-        body: JSON.stringify({
-          recording_id: recording.id,
-          title: `${recording.title} — phrase`,
-          instrument_id: instrument,
-          segment_start_seconds: 0,
-          segment_end_seconds: Math.min(duration, 30),
-        }),
-      });
-      const job = await apiFetch<JobResponse>(`/api/v1/transcriptions/${project.id}/process`, {
-        method: "POST",
-        headers: { "Idempotency-Key": crypto.randomUUID() },
-      });
+      setRecording(
+        recording.id,
+        recording.source_kind,
+        recording.title,
+        recording.artist,
+      );
+      const project = await apiFetch<ProjectResponse>(
+        "/api/v1/transcriptions",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            recording_id: recording.id,
+            title: `${recording.title} — phrase`,
+            instrument_id: instrument,
+            segment_start_seconds: 0,
+            segment_end_seconds: Math.min(duration, 30),
+          }),
+        },
+      );
+      const job = await apiFetch<JobResponse>(
+        `/api/v1/transcriptions/${project.id}/process`,
+        {
+          method: "POST",
+          headers: { "Idempotency-Key": crypto.randomUUID() },
+        },
+      );
       setRemoteProject(project.id, job.id);
-      onNotify("Transcription queued — real pitch and rhythm analysis is running");
+      onNotify(
+        "Transcription queued — real pitch and rhythm analysis is running",
+      );
       onClose();
     } catch (cause) {
       setError(
@@ -114,34 +144,60 @@ export function NewTranscriptionDialog({ onClose, onNotify }: NewTranscriptionDi
       setError("Enter a valid YouTube or Spotify URL.");
       return;
     }
-    const allowed = ["youtube.com", "www.youtube.com", "youtu.be", "open.spotify.com"];
+    const allowed = [
+      "youtube.com",
+      "www.youtube.com",
+      "youtu.be",
+      "open.spotify.com",
+    ];
     if (!allowed.includes(parsed.hostname)) {
       setError("Only official YouTube and Spotify links are supported.");
       return;
     }
     if (!accessToken) {
-      setError("Sign in first so Frasi can save the official reference to your private studio.");
+      setError(
+        "Sign in first so Frasi can save the official reference to your private studio.",
+      );
       return;
     }
     setBusy(true);
     try {
-      const provider = parsed.hostname === "open.spotify.com" ? "spotify" : "youtube";
-      const recording = await apiFetch<RecordingResponse>("/api/v1/recordings/external", {
-        method: "POST",
-        body: JSON.stringify({ provider, url: link }),
-      });
-      setRecording(recording.id, recording.source_kind, recording.title, recording.artist);
+      const provider =
+        parsed.hostname === "open.spotify.com" ? "spotify" : "youtube";
+      const recording = await apiFetch<RecordingResponse>(
+        "/api/v1/recordings/external",
+        {
+          method: "POST",
+          body: JSON.stringify({ provider, url: link }),
+        },
+      );
+      setRecording(
+        recording.id,
+        recording.source_kind,
+        recording.title,
+        recording.artist,
+      );
       setTab("upload");
-      onNotify("Official metadata linked — now attach audio you are authorized to analyze");
+      onNotify(
+        "Official metadata linked — now attach audio you are authorized to analyze",
+      );
     } catch (cause) {
-      setError(cause instanceof ApiError ? cause.message : "Unable to add this reference.");
+      setError(
+        cause instanceof ApiError
+          ? cause.message
+          : "Unable to add this reference.",
+      );
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <div className={styles.dialogBackdrop} role="presentation" onMouseDown={onClose}>
+    <div
+      className={styles.dialogBackdrop}
+      role="presentation"
+      onMouseDown={onClose}
+    >
       <section
         className={styles.dialog}
         role="dialog"
@@ -149,18 +205,29 @@ export function NewTranscriptionDialog({ onClose, onNotify }: NewTranscriptionDi
         aria-labelledby="new-transcription-title"
         onMouseDown={(event) => event.stopPropagation()}
       >
-        <button className={styles.dialogClose} onClick={onClose} aria-label="Close" type="button">
+        <button
+          className={styles.dialogClose}
+          onClick={onClose}
+          aria-label="Close"
+          type="button"
+        >
           <X size={18} />
         </button>
         <p className={styles.eyebrow}>NEW PROJECT</p>
         <h2 id="new-transcription-title">Bring in a recording</h2>
         <p className={styles.dialogIntro}>
-          Upload audio you are permitted to process, or associate an official streaming link for
-          metadata and playback.
+          Upload audio you are permitted to process, or associate an official
+          streaming link for metadata and playback.
         </p>
-        <div className={styles.dialogTabs} role="tablist" aria-label="Recording source">
+        <div
+          className={styles.dialogTabs}
+          role="tablist"
+          aria-label="Recording source"
+        >
           <button
-            className={tab === "upload" ? styles.dialogTabActive : styles.dialogTab}
+            className={
+              tab === "upload" ? styles.dialogTabActive : styles.dialogTab
+            }
             onClick={() => setTab("upload")}
             role="tab"
             aria-selected={tab === "upload"}
@@ -169,7 +236,9 @@ export function NewTranscriptionDialog({ onClose, onNotify }: NewTranscriptionDi
             <FileAudio size={17} /> Audio file
           </button>
           <button
-            className={tab === "link" ? styles.dialogTabActive : styles.dialogTab}
+            className={
+              tab === "link" ? styles.dialogTabActive : styles.dialogTab
+            }
             onClick={() => setTab("link")}
             role="tab"
             aria-selected={tab === "link"}
@@ -199,7 +268,9 @@ export function NewTranscriptionDialog({ onClose, onNotify }: NewTranscriptionDi
               <span className={styles.dropIcon}>
                 <Upload size={22} />
               </span>
-              <strong>{busy ? "Reading recording…" : "Choose an audio recording"}</strong>
+              <strong>
+                {busy ? "Reading recording…" : "Choose an audio recording"}
+              </strong>
               <small>WAV, MP3, FLAC, M4A, or OGG · up to 200 MB</small>
             </button>
           </>
@@ -214,12 +285,17 @@ export function NewTranscriptionDialog({ onClose, onNotify }: NewTranscriptionDi
                 placeholder="https://youtube.com/watch?v=…"
                 type="url"
               />
-              <button onClick={() => void handleLink()} disabled={busy} type="button">
+              <button
+                onClick={() => void handleLink()}
+                disabled={busy}
+                type="button"
+              >
                 {busy ? "Checking…" : "Add link"}
               </button>
             </div>
             <small>
-              Frasi never rips protected audio. Upload a recording you are authorized to analyze.
+              Frasi never rips protected audio. Upload a recording you are
+              authorized to analyze.
             </small>
           </div>
         )}

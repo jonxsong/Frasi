@@ -7,7 +7,9 @@ const xml = `<?xml version="1.0"?><score-partwise><part><measure><attributes><ke
 describe("MusicXML display transposition", () => {
   it("transposes pitch, octave, harmony, and key signature", () => {
     const result = transposeMusicXml(xml, 2, "D");
-    expect(result).toContain("<step>C</step><alter>1</alter><octave>5</octave>");
+    expect(result).toContain(
+      "<step>C</step><alter>1</alter><octave>5</octave>",
+    );
     expect(result).toContain("<root-step>D</root-step>");
     expect(result).toContain('text="Dmaj7"');
     expect(result).toContain("<fifths>2</fifths>");
@@ -16,7 +18,9 @@ describe("MusicXML display transposition", () => {
   it("uses flat spelling in flat keys", () => {
     const result = transposeMusicXml(xml, 3, "Eb");
     expect(result).toContain("<step>D</step><octave>5</octave>");
-    expect(result).toContain("<root-step>E</root-step><root-alter>-1</root-alter>");
+    expect(result).toContain(
+      "<root-step>E</root-step><root-alter>-1</root-alter>",
+    );
   });
 
   it("does not rewrite canonical XML for zero semitones", () => {

@@ -1,7 +1,12 @@
 "use client";
 
 import { useEffect } from "react";
-import { ApiError, apiFetch, type JobResponse, type ScoreResponse } from "@/lib/api";
+import {
+  ApiError,
+  apiFetch,
+  type JobResponse,
+  type ScoreResponse,
+} from "@/lib/api";
 import { useStudioStore } from "@/store/studio";
 
 export function useTranscriptionJob(notify: (message: string) => void) {
@@ -44,7 +49,11 @@ export function useTranscriptionJob(notify: (message: string) => void) {
       } catch (cause) {
         if (!active) return;
         setJob("failed", "connection_error", 0);
-        notify(cause instanceof ApiError ? cause.message : "Unable to check transcription status");
+        notify(
+          cause instanceof ApiError
+            ? cause.message
+            : "Unable to check transcription status",
+        );
       }
     }
 

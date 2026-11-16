@@ -17,7 +17,11 @@ export function IconButton({
 }: IconButtonProps) {
   return (
     <button
-      className={clsx(styles.iconButton, styles[`iconButton_${variant}`], className)}
+      className={clsx(
+        styles.iconButton,
+        styles[`iconButton_${variant}`],
+        className,
+      )}
       aria-label={label}
       title={label}
       type="button"

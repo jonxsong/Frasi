@@ -1,9 +1,43 @@
 import { transposeChord } from "@frasi/music-core";
 
-const NATURAL: Record<string, number> = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
-const SHARPS = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+const NATURAL: Record<string, number> = {
+  C: 0,
+  D: 2,
+  E: 4,
+  F: 5,
+  G: 7,
+  A: 9,
+  B: 11,
+};
+const SHARPS = [
+  "C",
+  "C#",
+  "D",
+  "D#",
+  "E",
+  "F",
+  "F#",
+  "G",
+  "G#",
+  "A",
+  "A#",
+  "B",
+];
 const FLATS = ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"];
-const FIFTHS: Record<string, number> = { C: 0, Db: -5, D: 2, Eb: -3, E: 4, F: -1, Gb: -6, G: 1, Ab: -4, A: 3, Bb: -2, B: 5 };
+const FIFTHS: Record<string, number> = {
+  C: 0,
+  Db: -5,
+  D: 2,
+  Eb: -3,
+  E: 4,
+  F: -1,
+  Gb: -6,
+  G: 1,
+  Ab: -4,
+  A: 3,
+  Bb: -2,
+  B: 5,
+};
 
 function text(element: Element, selector: string): string | null {
   return element.querySelector(selector)?.textContent ?? null;
@@ -43,7 +77,8 @@ export function transposeMusicXml(
 ): string {
   if (semitones === 0) return source;
   const document = new DOMParser().parseFromString(source, "application/xml");
-  if (document.querySelector("parsererror")) throw new Error("Invalid MusicXML document");
+  if (document.querySelector("parsererror"))
+    throw new Error("Invalid MusicXML document");
   const normalizedKey = destinationKey.replace(" (Original)", "");
   const names = normalizedKey.includes("b") ? FLATS : SHARPS;
 
@@ -76,7 +111,11 @@ export function transposeMusicXml(
     }
     const kind = harmony.querySelector("kind");
     const originalSymbol = kind?.getAttribute("text");
-    if (kind && originalSymbol) kind.setAttribute("text", transposeChord(originalSymbol, semitones, normalizedKey));
+    if (kind && originalSymbol)
+      kind.setAttribute(
+        "text",
+        transposeChord(originalSymbol, semitones, normalizedKey),
+      );
   });
 
   if (normalizedKey in FIFTHS) {

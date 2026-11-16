@@ -116,7 +116,8 @@ export const useStudioStore = create<StudioState>()(
       togglePlaying: () => set((state) => ({ isPlaying: !state.isPlaying })),
       setCurrentTime: (currentTime) => set({ currentTime }),
       setDuration: (duration) => set({ duration }),
-      setSelection: (selectionStart, selectionEnd) => set({ selectionStart, selectionEnd }),
+      setSelection: (selectionStart, selectionEnd) =>
+        set({ selectionStart, selectionEnd }),
       setLoopEnabled: (loopEnabled) => set({ loopEnabled }),
       setSpeed: (speed) => set({ speed: Math.max(0.25, Math.min(2, speed)) }),
       setVolume: (volume) => set({ volume: Math.max(0, Math.min(1, volume)) }),
@@ -139,13 +140,30 @@ export const useStudioStore = create<StudioState>()(
           isPlaying: false,
         }),
       setMusicXml: (musicXml) => set({ musicXml, isDemo: false }),
-      setRecording: (recordingId, recordingSource, projectTitle, projectArtist) =>
-        set({ recordingId, recordingSource, projectTitle, projectArtist }),
+      setRecording: (
+        recordingId,
+        recordingSource,
+        projectTitle,
+        projectArtist,
+      ) => set({ recordingId, recordingSource, projectTitle, projectArtist }),
       setRemoteProject: (projectId, jobId) =>
-        set({ projectId, jobId, jobStatus: "queued", jobStage: "waiting_for_worker", jobProgress: 0 }),
-      setJob: (jobStatus, jobStage, jobProgress) => set({ jobStatus, jobStage, jobProgress }),
+        set({
+          projectId,
+          jobId,
+          jobStatus: "queued",
+          jobStage: "waiting_for_worker",
+          jobProgress: 0,
+        }),
+      setJob: (jobStatus, jobStage, jobProgress) =>
+        set({ jobStatus, jobStage, jobProgress }),
       setRevision: (revisionId, musicXml) =>
-        set({ revisionId, musicXml, isDemo: false, jobStatus: "succeeded", jobProgress: 1 }),
+        set({
+          revisionId,
+          musicXml,
+          isDemo: false,
+          jobStatus: "succeeded",
+          jobProgress: 1,
+        }),
       markSaved: () => set({ savedAt: Date.now() }),
       resetProject: () => set({ ...initialState, savedAt: null }),
     }),

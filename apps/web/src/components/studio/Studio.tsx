@@ -36,12 +36,12 @@ export function Studio() {
           onNew={() => setNewProjectOpen(true)}
           onSave={actions.save}
           onShare={actions.share}
-          onExport={actions.exportMusicXml}
+          onExport={(format) => void actions.exportScore(format)}
         />
         <Waveform />
         <div className={styles.studioGrid}>
           <div className={styles.mainColumn}>
-            <ScorePanel />
+            <ScorePanel onNotify={notify} />
             <ScoreFooter />
           </div>
           <ControlSidebar />
@@ -53,7 +53,9 @@ export function Studio() {
           onNotify={notify}
         />
       )}
-      {accountOpen && <AuthDialog onClose={() => setAccountOpen(false)} onNotify={notify} />}
+      {accountOpen && (
+        <AuthDialog onClose={() => setAccountOpen(false)} onNotify={notify} />
+      )}
       {toast && (
         <div className={styles.toast} role="status">
           {toast}

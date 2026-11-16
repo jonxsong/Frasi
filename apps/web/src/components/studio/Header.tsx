@@ -27,7 +27,9 @@ export function Header({ onAccount }: HeaderProps) {
         {nav.map((item) => (
           <button
             key={item.id}
-            className={workspace === item.id ? styles.navActive : styles.navItem}
+            className={
+              workspace === item.id ? styles.navActive : styles.navItem
+            }
             aria-current={workspace === item.id ? "page" : undefined}
             onClick={() => setWorkspace(item.id)}
             type="button"
@@ -38,11 +40,17 @@ export function Header({ onAccount }: HeaderProps) {
       </nav>
       <button
         className={user ? styles.profileButtonActive : styles.profileButton}
-        aria-label={user ? `Account for ${user.display_name}` : "Open account menu"}
+        aria-label={
+          user ? `Account for ${user.display_name}` : "Open account menu"
+        }
         onClick={onAccount}
         type="button"
       >
-        {user ? user.display_name.slice(0, 1).toUpperCase() : <CircleUserRound size={21} strokeWidth={1.5} />}
+        {user ? (
+          user.display_name.slice(0, 1).toUpperCase()
+        ) : (
+          <CircleUserRound size={21} strokeWidth={1.5} />
+        )}
       </button>
     </header>
   );

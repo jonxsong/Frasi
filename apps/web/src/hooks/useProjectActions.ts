@@ -2,9 +2,12 @@
 
 import { useCallback } from "react";
 import { useStudioStore } from "@/store/studio";
+import { ApiError, apiDownload } from "@/lib/api";
 
-function download(content: BlobPart, name: string, type: string) {
-  const url = URL.createObjectURL(new Blob([content], { type }));
+function download(content: BlobPart | Blob, name: string, type: string) {
+  const url = URL.createObjectURL(
+    content instanceof Blob ? content : new Blob([content], { type }),
+  );
   const anchor = document.createElement("a");
   anchor.href = url;
   anchor.download = name;
@@ -15,6 +18,8 @@ function download(content: BlobPart, name: string, type: string) {
 export function useProjectActions(notify: (message: string) => void) {
   const musicXml = useStudioStore((state) => state.musicXml);
   const markSaved = useStudioStore((state) => state.markSaved);
+  const projectId = useStudioStore((state) => state.projectId);
+  const projectTitle = useStudioStore((state) => state.projectTitle);
 
   const save = useCallback(() => {
     markSaved();
@@ -35,10 +40,42 @@ export function useProjectActions(notify: (message: string) => void) {
     notify("Share link copied");
   }, [notify]);
 
-  const exportMusicXml = useCallback(() => {
-    download(musicXml, "frasi-transcription.musicxml", "application/vnd.recordare.musicxml+xml");
-    notify("MusicXML export downloaded");
-  }, [musicXml, notify]);
+  const exportScore = useCallback(
+    async (format: "musicxml" | "midi" | "pdf") => {
+      const stem = (projectTitle ?? "frasi-transcription").replace(
+        /[^a-z0-9_-]+/gi,
+        "-",
+      );
+      if (!projectId) {
+        if (format !== "musicxml") {
+          notify(
+            "Run a transcription to generate server-backed MIDI and PDF exports",
+          );
+          return;
+        }
+        download(
+          musicXml,
+          `${stem}.musicxml`,
+          "application/vnd.recordare.musicxml+xml",
+        );
+        notify("MusicXML export downloaded");
+        return;
+      }
+      try {
+        const blob = await apiDownload(
+          `/api/v1/transcriptions/${projectId}/export/${format}`,
+        );
+        const suffix = format === "midi" ? "mid" : format;
+        download(blob, `${stem}.${suffix}`, blob.type);
+        notify(
+          `${format === "musicxml" ? "MusicXML" : format.toUpperCase()} export downloaded`,
+        );
+      } catch (cause) {
+        notify(cause instanceof ApiError ? cause.message : "Export failed");
+      }
+    },
+    [musicXml, notify, projectId, projectTitle],
+  );
 
-  return { save, share, exportMusicXml };
+  return { save, share, exportScore };
 }

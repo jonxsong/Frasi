@@ -35,7 +35,11 @@ export function AuthDialog({ onClose, onNotify }: AuthDialogProps) {
         body: JSON.stringify(payload),
       });
       setSession(session.user, session.access_token, session.refresh_token);
-      onNotify(mode === "register" ? "Your Frasi studio is ready" : "Welcome back to Frasi");
+      onNotify(
+        mode === "register"
+          ? "Your Frasi studio is ready"
+          : "Welcome back to Frasi",
+      );
       onClose();
     } catch (cause) {
       setError(cause instanceof ApiError ? cause.message : "Unable to sign in");
@@ -57,7 +61,11 @@ export function AuthDialog({ onClose, onNotify }: AuthDialogProps) {
   }
 
   return (
-    <div className={styles.dialogBackdrop} role="presentation" onMouseDown={onClose}>
+    <div
+      className={styles.dialogBackdrop}
+      role="presentation"
+      onMouseDown={onClose}
+    >
       <section
         className={`${styles.dialog} ${styles.authDialog}`}
         role="dialog"
@@ -65,7 +73,12 @@ export function AuthDialog({ onClose, onNotify }: AuthDialogProps) {
         aria-labelledby="account-title"
         onMouseDown={(event) => event.stopPropagation()}
       >
-        <button className={styles.dialogClose} onClick={onClose} aria-label="Close" type="button">
+        <button
+          className={styles.dialogClose}
+          onClick={onClose}
+          aria-label="Close"
+          type="button"
+        >
           <X size={18} />
         </button>
         <p className={styles.eyebrow}>YOUR STUDIO</p>
@@ -80,27 +93,45 @@ export function AuthDialog({ onClose, onNotify }: AuthDialogProps) {
           </div>
         ) : (
           <>
-            <h2 id="account-title">{mode === "login" ? "Return to your phrases" : "Create your studio"}</h2>
+            <h2 id="account-title">
+              {mode === "login"
+                ? "Return to your phrases"
+                : "Create your studio"}
+            </h2>
             <p className={styles.dialogIntro}>
-              Sync private transcriptions, revisions, vocabulary, and practice progress.
+              Sync private transcriptions, revisions, vocabulary, and practice
+              progress.
             </p>
-            <div className={styles.dialogTabs} role="tablist" aria-label="Account action">
+            <div
+              className={styles.dialogTabs}
+              role="tablist"
+              aria-label="Account action"
+            >
               <button
-                className={mode === "login" ? styles.dialogTabActive : styles.dialogTab}
+                className={
+                  mode === "login" ? styles.dialogTabActive : styles.dialogTab
+                }
                 onClick={() => setMode("login")}
                 type="button"
               >
                 Sign in
               </button>
               <button
-                className={mode === "register" ? styles.dialogTabActive : styles.dialogTab}
+                className={
+                  mode === "register"
+                    ? styles.dialogTabActive
+                    : styles.dialogTab
+                }
                 onClick={() => setMode("register")}
                 type="button"
               >
                 Create account
               </button>
             </div>
-            <form className={styles.authForm} onSubmit={(event) => void submit(event)}>
+            <form
+              className={styles.authForm}
+              onSubmit={(event) => void submit(event)}
+            >
               {mode === "register" && (
                 <label>
                   Display name
@@ -130,14 +161,24 @@ export function AuthDialog({ onClose, onNotify }: AuthDialogProps) {
                   type="password"
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
-                  autoComplete={mode === "login" ? "current-password" : "new-password"}
+                  autoComplete={
+                    mode === "login" ? "current-password" : "new-password"
+                  }
                   minLength={12}
                   required
                 />
               </label>
               {error && <p className={styles.formError}>{error}</p>}
-              <button className={styles.primaryFormButton} disabled={busy} type="submit">
-                {busy ? "Connecting…" : mode === "login" ? "Sign in" : "Create private studio"}
+              <button
+                className={styles.primaryFormButton}
+                disabled={busy}
+                type="submit"
+              >
+                {busy
+                  ? "Connecting…"
+                  : mode === "login"
+                    ? "Sign in"
+                    : "Create private studio"}
               </button>
             </form>
           </>

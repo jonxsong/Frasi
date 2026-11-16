@@ -1,9 +1,8 @@
 import { useAuthStore, type AuthUser } from "@/store/auth";
 
-export const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000").replace(
-  /\/$/,
-  "",
-);
+export const API_URL = (
+  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"
+).replace(/\/$/, "");
 
 export class ApiError extends Error {
   constructor(
@@ -52,6 +51,57 @@ export interface ScoreResponse {
   id: string;
   musicxml: string;
   revision: number;
+  measures?: ScoreMeasure[];
+}
+
+export interface ScoreNote {
+  id: string;
+  concert_midi: number | null;
+  spelling: string | null;
+  is_rest: boolean;
+  performance_onset_seconds: number;
+  performance_offset_seconds: number;
+  beat_numerator: number;
+  beat_denominator: number;
+  duration_numerator: number;
+  duration_denominator: number;
+  articulation: string | null;
+}
+
+export interface ScoreChord {
+  id: string;
+  beat_numerator: number;
+  beat_denominator: number;
+  symbol: string;
+  source: string;
+  locked: boolean;
+}
+
+export interface ScoreMeasure {
+  number: number;
+  beats: number;
+  beat_type: number;
+  voices: Array<{ number: number; notes: ScoreNote[] }>;
+  chords: ScoreChord[];
+}
+
+export interface HarmonyResponse {
+  revision_id: string;
+  key: string;
+  mode: string;
+  key_confidence: number;
+  chords: Array<{
+    measure: number;
+    beat: number;
+    symbol: string;
+    roman_numeral: string;
+    confidence: number;
+    source: string;
+    likely_scales: string[];
+    explanation: string;
+  }>;
+  patterns: string[];
+  caveats: string[];
 }
 
 function detailFromBody(body: unknown, fallback: string): string {
@@ -105,22 +155,36 @@ export async function apiFetch<T>(
   const token = useAuthStore.getState().accessToken;
   const headers = new Headers(init.headers);
   if (token) headers.set("Authorization", `Bearer ${token}`);
-  if (init.body && !(init.body instanceof FormData) && !headers.has("Content-Type")) {
+  if (
+    init.body &&
+    !(init.body instanceof FormData) &&
+    !headers.has("Content-Type")
+  ) {
     headers.set("Content-Type", "application/json");
   }
   let response: Response;
   try {
     response = await fetch(`${API_URL}${path}`, { ...init, headers });
   } catch {
-    throw new ApiError(0, "Frasi services are not reachable. Your local workspace is still safe.");
+    throw new ApiError(
+      0,
+      "Frasi services are not reachable. Your local workspace is still safe.",
+    );
   }
-  if (response.status === 401 && retryAuthentication && useAuthStore.getState().refreshToken) {
+  if (
+    response.status === 401 &&
+    retryAuthentication &&
+    useAuthStore.getState().refreshToken
+  ) {
     const nextToken = await refreshSession();
     if (nextToken) return apiFetch<T>(path, init, false);
   }
   const body = await parseBody(response);
   if (!response.ok) {
-    throw new ApiError(response.status, detailFromBody(body, `Request failed (${response.status})`));
+    throw new ApiError(
+      response.status,
+      detailFromBody(body, `Request failed (${response.status})`),
+    );
   }
   return body as T;
 }

@@ -9,7 +9,9 @@ import styles from "./Studio.module.css";
 
 const demoPeaks = Array.from({ length: 190 }, (_, index) => {
   const envelope = Math.sin((index / 189) * Math.PI) * 0.55 + 0.2;
-  const texture = Math.abs(Math.sin(index * 1.79) * 0.58 + Math.sin(index * 0.37) * 0.34);
+  const texture = Math.abs(
+    Math.sin(index * 1.79) * 0.58 + Math.sin(index * 0.37) * 0.34,
+  );
   return Math.max(0.08, Math.min(1, envelope * texture));
 });
 
@@ -38,7 +40,8 @@ export function Waveform() {
   const setSpeed = useStudioStore((state) => state.setSpeed);
 
   const selectionLeft = (selectionStart / Math.max(duration, 1)) * 100;
-  const selectionWidth = ((selectionEnd - selectionStart) / Math.max(duration, 1)) * 100;
+  const selectionWidth =
+    ((selectionEnd - selectionStart) / Math.max(duration, 1)) * 100;
   const playheadLeft = (currentTime / Math.max(duration, 1)) * 100;
   const selectionDuration = Math.max(0, selectionEnd - selectionStart);
 
@@ -46,7 +49,10 @@ export function Waveform() {
     (clientX: number) => {
       const rect = trackRef.current?.getBoundingClientRect();
       if (!rect) return 0;
-      return Math.max(0, Math.min(duration, ((clientX - rect.left) / rect.width) * duration));
+      return Math.max(
+        0,
+        Math.min(duration, ((clientX - rect.left) / rect.width) * duration),
+      );
     },
     [duration],
   );
@@ -54,9 +60,15 @@ export function Waveform() {
   const moveHandle = useCallback(
     (kind: Exclude<DragKind, null>, nextTime: number) => {
       if (kind === "start") {
-        setSelection(Math.max(0, Math.min(nextTime, selectionEnd - 0.25)), selectionEnd);
+        setSelection(
+          Math.max(0, Math.min(nextTime, selectionEnd - 0.25)),
+          selectionEnd,
+        );
       } else {
-        setSelection(selectionStart, Math.min(duration, Math.max(nextTime, selectionStart + 0.25)));
+        setSelection(
+          selectionStart,
+          Math.min(duration, Math.max(nextTime, selectionStart + 0.25)),
+        );
       }
     },
     [duration, selectionEnd, selectionStart, setSelection],
@@ -64,7 +76,8 @@ export function Waveform() {
 
   useEffect(() => {
     const move = (event: PointerEvent) => {
-      if (dragRef.current) moveHandle(dragRef.current, timeFromClientX(event.clientX));
+      if (dragRef.current)
+        moveHandle(dragRef.current, timeFromClientX(event.clientX));
     };
     const up = () => {
       dragRef.current = null;
@@ -141,7 +154,8 @@ export function Waveform() {
 
   useEffect(() => {
     const wave = waveRef.current;
-    if (wave && Math.abs(wave.getCurrentTime() - currentTime) > 0.3) wave.setTime(currentTime);
+    if (wave && Math.abs(wave.getCurrentTime() - currentTime) > 0.3)
+      wave.setTime(currentTime);
   }, [currentTime]);
 
   useEffect(() => {
@@ -149,11 +163,13 @@ export function Waveform() {
     let frame = 0;
     let previous = performance.now();
     const tick = (now: number) => {
-      const elapsed = ((now - previous) / 1000) * useStudioStore.getState().speed;
+      const elapsed =
+        ((now - previous) / 1000) * useStudioStore.getState().speed;
       previous = now;
       const state = useStudioStore.getState();
       let next = state.currentTime + elapsed;
-      if (state.loopEnabled && next >= state.selectionEnd) next = state.selectionStart;
+      if (state.loopEnabled && next >= state.selectionEnd)
+        next = state.selectionStart;
       if (!state.loopEnabled && next >= state.duration) {
         next = state.duration;
         state.setPlaying(false);
@@ -178,31 +194,54 @@ export function Waveform() {
     waveRef.current?.setTime(seconds);
   }
 
-  function handleKey(kind: Exclude<DragKind, null>, event: React.KeyboardEvent) {
+  function handleKey(
+    kind: Exclude<DragKind, null>,
+    event: React.KeyboardEvent,
+  ) {
     if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
     event.preventDefault();
     const change = event.key === "ArrowLeft" ? -0.25 : 0.25;
-    moveHandle(kind, (kind === "start" ? selectionStart : selectionEnd) + change);
+    moveHandle(
+      kind,
+      (kind === "start" ? selectionStart : selectionEnd) + change,
+    );
   }
 
   return (
     <section className={styles.waveformRow} aria-label="Recording waveform">
-      <button className={styles.wavePlay} onClick={togglePlaying} type="button" aria-label={isPlaying ? "Pause" : "Play"}>
-        {isPlaying ? <Pause size={23} fill="currentColor" /> : <Play size={23} fill="currentColor" />}
+      <button
+        className={styles.wavePlay}
+        onClick={togglePlaying}
+        type="button"
+        aria-label={isPlaying ? "Pause" : "Play"}
+      >
+        {isPlaying ? (
+          <Pause size={23} fill="currentColor" />
+        ) : (
+          <Play size={23} fill="currentColor" />
+        )}
       </button>
-      <span className={styles.waveTime}>{formatTime(currentTime)} / {formatTime(duration)}</span>
+      <span className={styles.waveTime}>
+        {formatTime(currentTime)} / {formatTime(duration)}
+      </span>
       <div
         ref={trackRef}
         className={styles.waveTrack}
         onPointerDown={(event) => seek(timeFromClientX(event.clientX))}
       >
-        <div ref={containerRef} className={audioUrl ? styles.realWave : styles.hiddenWave} />
+        <div
+          ref={containerRef}
+          className={audioUrl ? styles.realWave : styles.hiddenWave}
+        />
         {!audioUrl && <div className={styles.demoWave}>{visiblePeaks}</div>}
         <div
           className={styles.waveSelection}
           style={{ left: `${selectionLeft}%`, width: `${selectionWidth}%` }}
         />
-        <span className={styles.selectionLabel} style={{ left: `${selectionLeft + selectionWidth / 2}%` }}>
+        <span
+          className={styles.selectionLabel}
+          style={{ left: `${selectionLeft + selectionWidth / 2}%` }}
+        >
           {formatTime(selectionDuration, true)}
         </span>
         <button
@@ -237,10 +276,17 @@ export function Waveform() {
           aria-valuenow={selectionEnd}
           type="button"
         />
-        <span className={styles.wavePlayhead} style={{ left: `${playheadLeft}%` }} />
+        <span
+          className={styles.wavePlayhead}
+          style={{ left: `${playheadLeft}%` }}
+        />
       </div>
       <div className={styles.waveActions}>
-        <button onClick={() => seek(selectionStart)} aria-label="Return to selection start" type="button">
+        <button
+          onClick={() => seek(selectionStart)}
+          aria-label="Return to selection start"
+          type="button"
+        >
           <RotateCcw size={17} />
         </button>
         <button

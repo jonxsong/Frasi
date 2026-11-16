@@ -1,6 +1,12 @@
 export interface DemoMeasure {
   chord: string;
-  notes: Array<{ step: string; alter?: number; octave: number; duration: number; type: string }>;
+  notes: Array<{
+    step: string;
+    alter?: number;
+    octave: number;
+    duration: number;
+    type: string;
+  }>;
 }
 
 const phrase: DemoMeasure[] = [
@@ -135,7 +141,9 @@ function harmony(symbol: string): string {
   return `<harmony><root><root-step>${step}</root-step>${accidental ? `<root-alter>${accidental}</root-alter>` : ""}</root><kind text="${symbol}">${kind.includes("m") && !kind.includes("maj") ? "minor-seventh" : kind.includes("7") ? "dominant" : "major"}</kind></harmony>`;
 }
 
-export function createDemoMusicXml(title = "Midnight Language — demo phrase"): string {
+export function createDemoMusicXml(
+  title = "Midnight Language — demo phrase",
+): string {
   const measures = phrase
     .map((measure, index) => {
       const attributes =
@@ -145,7 +153,7 @@ export function createDemoMusicXml(title = "Midnight Language — demo phrase"):
       const notes = measure.notes
         .map(
           (note) =>
-            `<note><pitch><step>${note.step}</step>${note.alter ? `<alter>${note.alter}</alter>` : ""}<octave>${note.octave}</octave></pitch><duration>${note.duration}</duration><voice>1</voice><type>${note.type}</type>${note.duration === 1 ? "<beam number=\"1\">continue</beam>" : ""}</note>`,
+            `<note><pitch><step>${note.step}</step>${note.alter ? `<alter>${note.alter}</alter>` : ""}<octave>${note.octave}</octave></pitch><duration>${note.duration}</duration><voice>1</voice><type>${note.type}</type>${note.duration === 1 ? '<beam number="1">continue</beam>' : ""}</note>`,
         )
         .join("");
       return `<measure number="${index + 1}">${attributes}${harmony(measure.chord)}${notes}</measure>`;

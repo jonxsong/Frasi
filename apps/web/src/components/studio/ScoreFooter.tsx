@@ -10,8 +10,12 @@ export function ScoreFooter() {
       <i />
       <span>Tempo: ♩ = 140 (Swing)</span>
       <div>
-        <button aria-label="Audio alignment settings" type="button"><AudioLines size={18} /></button>
-        <button aria-label="Metronome settings" type="button"><Timer size={18} /></button>
+        <button aria-label="Audio alignment settings" type="button">
+          <AudioLines size={18} />
+        </button>
+        <button aria-label="Metronome settings" type="button">
+          <Timer size={18} />
+        </button>
       </div>
     </footer>
   );
