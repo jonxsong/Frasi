@@ -238,6 +238,7 @@ test("transcribes an uploaded phrase as a guest without authentication", async (
   await expect(
     page.locator("footer").filter({ hasText: "Tempo:" }),
   ).toContainText("Straight");
+  await expect(page.locator("footer")).toContainText("Key: Not analyzed");
   await expect(
     page.locator('section[aria-label="Interactive score"] svg').first(),
   ).toBeVisible({ timeout: 20_000 });
