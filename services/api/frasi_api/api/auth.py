@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from frasi_api.config import get_settings
 from frasi_api.database import get_session
 from frasi_api.models import AuthSession, User
+from frasi_api.rate_limit import rate_limit
 from frasi_api.schemas.auth import (
     LoginRequest,
     RefreshRequest,
@@ -37,7 +38,12 @@ def token_response(user: User, access: str, refresh: str) -> TokenResponse:
     )
 
 
-@router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/register",
+    response_model=TokenResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(rate_limit("auth-register", 8, 60))],
+)
 async def register(
     payload: RegisterRequest,
     request: Request,
@@ -57,7 +63,11 @@ async def register(
     return token_response(user, access, refresh)
 
 
-@router.post("/login", response_model=TokenResponse)
+@router.post(
+    "/login",
+    response_model=TokenResponse,
+    dependencies=[Depends(rate_limit("auth-login", 10, 60))],
+)
 async def login(
     payload: LoginRequest,
     request: Request,
@@ -70,7 +80,11 @@ async def login(
     return token_response(user, access, refresh)
 
 
-@router.post("/refresh", response_model=TokenResponse)
+@router.post(
+    "/refresh",
+    response_model=TokenResponse,
+    dependencies=[Depends(rate_limit("auth-refresh", 30, 60))],
+)
 async def refresh(
     payload: RefreshRequest,
     request: Request,

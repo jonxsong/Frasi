@@ -47,8 +47,12 @@ class Settings(BaseSettings):
         return self.env.lower() == "production"
 
     def validate_production(self) -> None:
-        if self.production and self.jwt_secret.startswith("development-"):
-            raise RuntimeError("FRASI_JWT_SECRET must be replaced in production")
+        if self.production and (
+            self.jwt_secret.startswith("development-") or len(self.jwt_secret) < 32
+        ):
+            raise RuntimeError(
+                "FRASI_JWT_SECRET must be a production secret of at least 32 characters"
+            )
 
 
 @lru_cache

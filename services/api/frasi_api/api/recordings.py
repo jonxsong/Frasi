@@ -19,6 +19,7 @@ from frasi_api.integrations import (
     fetch_youtube,
 )
 from frasi_api.models import AudioAsset, ExternalReference, Recording, SourceKind
+from frasi_api.rate_limit import rate_limit
 from frasi_api.schemas.recordings import (
     ExternalRecordingCreate,
     RecordingDetail,
@@ -80,7 +81,12 @@ async def persist_upload(
     return asset, info.duration_seconds
 
 
-@router.post("", response_model=RecordingDetail, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=RecordingDetail,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(rate_limit("audio-upload", 30, 3600))],
+)
 async def create_recording(
     user: CurrentUser,
     session: Annotated[AsyncSession, Depends(get_session)],
@@ -116,7 +122,12 @@ async def create_recording(
     return recording
 
 
-@router.post("/external", response_model=RecordingDetail, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/external",
+    response_model=RecordingDetail,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(rate_limit("external-reference", 60, 3600))],
+)
 async def create_external_recording(
     payload: ExternalRecordingCreate,
     user: CurrentUser,
@@ -159,7 +170,12 @@ async def create_external_recording(
     return recording
 
 
-@router.post("/{recording_id}/audio", response_model=RecordingDetail, status_code=201)
+@router.post(
+    "/{recording_id}/audio",
+    response_model=RecordingDetail,
+    status_code=201,
+    dependencies=[Depends(rate_limit("audio-upload", 30, 3600))],
+)
 async def attach_authorized_audio(
     recording_id: str,
     user: CurrentUser,

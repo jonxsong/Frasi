@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from frasi_api.database import get_session
 from frasi_api.models import AudioAsset, Recording, TranscriptionJob, TranscriptionProject
 from frasi_api.queue import dispatch_job
+from frasi_api.rate_limit import rate_limit
 from frasi_api.schemas.transcriptions import (
     INSTRUMENTS,
     JobResponse,
@@ -113,6 +114,7 @@ async def patch_transcription(
     "/transcriptions/{project_id}/process",
     response_model=JobResponse,
     status_code=status.HTTP_202_ACCEPTED,
+    dependencies=[Depends(rate_limit("transcription-process", 60, 3600))],
 )
 async def process_transcription(
     project_id: str,

@@ -9,10 +9,12 @@ from frasi_api import models  # noqa: F401
 from frasi_api.database import Base, get_session
 from frasi_api.main import app
 from frasi_api.models import Instrument
+from frasi_api.rate_limit import limiter
 
 
 @pytest_asyncio.fixture
 async def client() -> AsyncIterator[AsyncClient]:
+    limiter.clear_memory()
     engine = create_async_engine(
         "sqlite+aiosqlite://",
         connect_args={"check_same_thread": False},
@@ -54,4 +56,5 @@ async def client() -> AsyncIterator[AsyncClient]:
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as test_client:
         yield test_client
     app.dependency_overrides.clear()
+    limiter.clear_memory()
     await engine.dispose()
