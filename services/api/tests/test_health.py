@@ -1,11 +1,8 @@
-from httpx import ASGITransport, AsyncClient
-
-from frasi_api.main import app
+from httpx import AsyncClient
 
 
-async def test_health_endpoint() -> None:
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-        response = await client.get("/api/v1/health")
+async def test_health_endpoint(client: AsyncClient) -> None:
+    response = await client.get("/api/v1/health")
 
     assert response.status_code == 200
     assert response.json()["status"] == "ok"

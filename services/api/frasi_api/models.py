@@ -58,6 +58,22 @@ class User(TimestampMixin, Base):
 
     recordings: Mapped[list["Recording"]] = relationship(back_populates="owner")
     projects: Mapped[list["TranscriptionProject"]] = relationship(back_populates="owner")
+    auth_sessions: Mapped[list["AuthSession"]] = relationship(back_populates="user")
+
+
+class AuthSession(TimestampMixin, Base):
+    __tablename__ = "auth_sessions"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    jti: Mapped[str] = mapped_column(String(36), unique=True, index=True)
+    refresh_token_hash: Mapped[str] = mapped_column(String(64))
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    user_agent: Mapped[str | None] = mapped_column(String(500))
+    ip_address: Mapped[str | None] = mapped_column(String(64))
+
+    user: Mapped[User] = relationship(back_populates="auth_sessions")
 
 
 class Recording(TimestampMixin, Base):
