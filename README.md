@@ -14,6 +14,9 @@ twelve-key practice.
 
 [**Open the live Frasi studio**](https://frasi-jazz-studio.perkyaisle4.chatgpt.site)
 
+**No account required:** upload a WAV, MP3, FLAC, M4A, or OGG phrase and Frasi will
+transcribe the opening 20 seconds directly in your browser.
+
 </div>
 
 Frasi turns authorized audio into an editable concert-pitch score while preserving the
@@ -39,12 +42,17 @@ Compose.
 - CPU monophonic DSP using HPSS, onset detection, pYIN pitch tracking, tempo estimation,
   rational rhythm quantization, dotted values, tuplets, dual performance/symbolic timing, and
   MusicXML generation.
+- Account-free browser transcription using real autocorrelation pitch tracking and rhythm
+  quantization, so the public studio is testable without a cloud API or uploaded audio leaving
+  the device.
 - Immutable score correction with optimistic concurrency, note/chord validation, and complete
   revision history.
 - Canonical concert-pitch representation with derived alto/tenor/soprano/baritone saxophone,
   trumpet, trombone, chromatic, and all-twelve-key views.
 - Deterministic key/mode, chord, Roman-numeral, ii–V–I, and scale-choice analysis with explicit
   confidence and caveats.
+- Jazz-standard chord engraving (`△`, `−`, `ø`, `°`) with semantic MusicXML harmony kinds,
+  slash-bass transposition, and ledger lines above and below the staff.
 - Practice and vocabulary ledgers plus real MusicXML, standard MIDI, and printable PDF exports.
 - Unit, API, DSP, responsive browser, strict type, container, migration, and full-stack smoke
   gates in CI.
@@ -56,19 +64,11 @@ Brand generation provenance is recorded in [`docs/BRAND.md`](docs/BRAND.md).
 
 ## Architecture
 
-```text
-Next.js / React / Verovio / WaveSurfer
-                  │
-             HTTPS + JSON
-                  │
-             FastAPI API
-         ┌────────┼──────────┐
-    PostgreSQL   Redis      RustFS/S3
-                     │
-                Celery worker
-                     │
-        librosa + pYIN + music21
-```
+<div align="center">
+
+<img src="./docs/architecture/frasi-system-architecture.svg" alt="Frasi system architecture showing the browser studio, API services, private data stores, workers, and audio-to-score pipeline" width="100%" />
+
+</div>
 
 Concert pitch is the source of truth. Instrument pitch and twelve-key practice are projections,
 so transposition never mutates the stored score. Every note stores both performed seconds and
