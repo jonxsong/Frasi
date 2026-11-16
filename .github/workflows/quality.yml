@@ -25,6 +25,8 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build
+      - run: pnpm --filter @frasi/web exec playwright install --with-deps chromium
+      - run: pnpm --filter @frasi/web test:e2e
 
   python:
     runs-on: ubuntu-latest
