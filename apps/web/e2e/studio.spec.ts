@@ -59,9 +59,41 @@ test("loads the demo studio and opens the compliant ingestion flow", async ({
   await expect(dialog).toBeVisible();
   await expect(dialog.getByRole("tab", { name: "Audio file" })).toBeVisible();
   await dialog.getByRole("tab", { name: "YouTube / Spotify" }).click();
-  await expect(dialog).toContainText("never rips protected audio");
+  await expect(dialog).toContainText("Capture 20 seconds from playing tab");
+  await expect(dialog).toContainText(
+    "Browser-mediated, real-time capture only",
+  );
   await dialog.getByRole("button", { name: "Close" }).click();
   await expect(dialog).toBeHidden();
+});
+
+test("requests browser-mediated audio for a streaming reference", async ({
+  page,
+}, testInfo) => {
+  const pageErrors: string[] = [];
+  page.on("pageerror", (error) => pageErrors.push(error.message));
+  test.skip(
+    testInfo.project.name !== "chromium",
+    "Tab capture only needs one desktop regression pass.",
+  );
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "mediaDevices", {
+      configurable: true,
+      value: { getDisplayMedia: async () => new MediaStream() },
+    });
+  });
+  await page.goto("/");
+  await page.getByRole("button", { name: "New Transcription" }).click();
+  const dialog = page.getByRole("dialog", { name: "Bring in a recording" });
+  await dialog.getByRole("tab", { name: "YouTube / Spotify" }).click();
+  await dialog
+    .getByLabel("YouTube or Spotify URL")
+    .fill("https://open.spotify.com/track/frasi-smoke");
+  await dialog
+    .getByRole("button", { name: "Capture 20 seconds from playing tab" })
+    .click();
+  await expect(dialog).toContainText("No tab audio was shared");
+  expect(pageErrors).toEqual([]);
 });
 
 test("transcribes an uploaded phrase as a guest without authentication", async ({

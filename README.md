@@ -14,8 +14,9 @@ twelve-key practice.
 
 [**Open the live Frasi studio**](https://frasi-jazz-studio.perkyaisle4.chatgpt.site)
 
-**No account required:** upload a WAV, MP3, FLAC, M4A, or OGG phrase and Frasi will
-transcribe the opening 20 seconds directly in your browser.
+**No account required:** upload a WAV, MP3, FLAC, M4A, or OGG phrase—or capture
+authorized playback from a shared YouTube/Spotify browser tab—and Frasi will transcribe the
+opening 20 seconds directly in your browser.
 
 </div>
 
@@ -35,8 +36,9 @@ Compose.
   checks, request IDs, security headers, and Redis-backed rate limits.
 - Validated WAV, MP3, FLAC, M4A, and OGG uploads with MIME probing, size limits, SHA-256
   metadata, encrypted object storage, and private bucket initialization.
-- Licensed YouTube and Spotify reference metadata through official APIs. Frasi never rips or
-  downloads protected streaming audio; users must attach audio they are authorized to process.
+- YouTube and Spotify reference validation, official metadata when configured, and a real-time,
+  browser-mediated shared-tab capture path. Frasi never server-side rips or downloads protected
+  streaming audio.
 - Idempotent background jobs with progress, retry state, health checks, and durable PostgreSQL
   results.
 - CPU monophonic DSP using HPSS, onset detection, pYIN pitch tracking, tempo estimation,
@@ -45,6 +47,8 @@ Compose.
 - Account-free browser transcription using real autocorrelation pitch tracking and rhythm
   quantization, so the public studio is testable without a cloud API or uploaded audio leaving
   the device.
+- Bounded in-memory tab-audio recording for authorized YouTube and Spotify playback, with an
+  explicit browser share picker, automatic 20-second stop, and honest protected-content errors.
 - Immutable score correction with optimistic concurrency, note/chord validation, and complete
   revision history.
 - Canonical concert-pitch representation with derived alto/tenor/soprano/baritone saxophone,
@@ -61,6 +65,8 @@ The exact acceptance ledger and honest limitations are maintained in
 [`docs/IMPLEMENTATION_STATUS.md`](docs/IMPLEMENTATION_STATUS.md). Synthetic benchmark results
 are in [`docs/BENCHMARKS.md`](docs/BENCHMARKS.md).
 Brand generation provenance is recorded in [`docs/BRAND.md`](docs/BRAND.md).
+Streaming acquisition boundaries are documented in
+[`docs/STREAMING_INGESTION.md`](docs/STREAMING_INGESTION.md).
 
 ## Architecture
 

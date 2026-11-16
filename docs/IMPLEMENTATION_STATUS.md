@@ -8,25 +8,25 @@ accuracy of a research-grade transcription model.
 
 ## Milestones
 
-| Milestone                        | Status                       | Verified evidence                                                                                                                                                                                                |
-| -------------------------------- | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Repository and architecture      | Complete                     | Modular monorepo, ADRs, normalized domain model, 30+ incremental commits                                                                                                                                         |
-| Original brand and design system | Complete                     | Original Frasi emblem, dark responsive studio, app/README/icon integration                                                                                                                                       |
-| Interactive music studio         | Complete                     | Waveform, selection handles, A–B, seeking, speed, volume, keyboard-accessible controls                                                                                                                           |
-| Notation and correction          | Complete                     | Verovio rendering, ledger lines, jazz-standard harmony glyphs, click-to-seek, pitch/duration/articulation/chord correction, immutable revisions                                                                  |
-| Music theory engine              | Complete                     | Concert-pitch canonical model, instrument transposition, chromatic/all-key practice projections                                                                                                                  |
-| Backend infrastructure           | Complete                     | FastAPI, PostgreSQL, Alembic, Redis/Celery, RustFS/S3, readiness/liveness, containers                                                                                                                            |
-| Transcription baseline           | Complete with declared scope | Real HPSS/onset/pYIN/tempo/quantization pipeline for monophonic wind phrases                                                                                                                                     |
-| Rhythm intelligence              | Complete with declared scope | Straight, dotted, tied/measure-aware and tuplet-capable rational timing; performance time preserved                                                                                                              |
-| Harmony                          | Complete                     | Deterministic key/mode, chord, Roman numeral, scale and ii–V–I analysis with caveats                                                                                                                             |
-| External integrations            | Complete                     | Official YouTube/Spotify metadata and embeds; authorized audio attachment required                                                                                                                               |
-| Practice and vocabulary          | Complete                     | Twelve-key transposition UI, mastery/session ledger, phrase snapshots and tags                                                                                                                                   |
-| Exports and sharing              | Complete                     | MusicXML, standard MIDI, printable PDF, Web Share/clipboard links                                                                                                                                                |
-| Security and privacy             | Complete for current scope   | Password hashing, rotating sessions, authorization, validation, rate limits, private objects, headers                                                                                                            |
-| Quality and CI                   | Complete                     | JS/Python lint, strict types, unit/API/DSP tests, browser E2E, image builds, Compose smoke                                                                                                                       |
-| Documentation                    | Complete                     | Setup, architecture, data model, pipeline, benchmark and deployment/operator guidance                                                                                                                            |
-| Public guest studio              | Complete                     | Account-free local audio transcription, notation, transposition, practice, browser save, and MusicXML export at [frasi-jazz-studio.perkyaisle4.chatgpt.site](https://frasi-jazz-studio.perkyaisle4.chatgpt.site) |
-| Public cloud persistence         | Backend topology pending     | The complete API/DB/queue/storage/worker stack passes locally; managed public infrastructure and credentials are not provisioned                                                                                 |
+| Milestone                        | Status                        | Verified evidence                                                                                                                                                                                                      |
+| -------------------------------- | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Repository and architecture      | Complete                      | Modular monorepo, ADRs, normalized domain model, 30+ incremental commits                                                                                                                                               |
+| Original brand and design system | Complete                      | Original Frasi emblem, dark responsive studio, app/README/icon integration                                                                                                                                             |
+| Interactive music studio         | Complete                      | Waveform, selection handles, A–B, seeking, speed, volume, keyboard-accessible controls                                                                                                                                 |
+| Notation and correction          | Complete                      | Verovio rendering, ledger lines, jazz-standard harmony glyphs, click-to-seek, pitch/duration/articulation/chord correction, immutable revisions                                                                        |
+| Music theory engine              | Complete                      | Concert-pitch canonical model, instrument transposition, chromatic/all-key practice projections                                                                                                                        |
+| Backend infrastructure           | Complete                      | FastAPI, PostgreSQL, Alembic, Redis/Celery, RustFS/S3, readiness/liveness, containers                                                                                                                                  |
+| Transcription baseline           | Complete with declared scope  | Real HPSS/onset/pYIN/tempo/quantization pipeline for monophonic wind phrases                                                                                                                                           |
+| Rhythm intelligence              | Complete with declared scope  | Straight, dotted, tied/measure-aware and tuplet-capable rational timing; performance time preserved                                                                                                                    |
+| Harmony                          | Complete                      | Deterministic key/mode, chord, Roman numeral, scale and ii–V–I analysis with caveats                                                                                                                                   |
+| External integrations            | Complete with platform limits | Official YouTube/Spotify metadata plus browser-mediated, 20-second authorized tab-audio capture; no server-side stream extraction                                                                                      |
+| Practice and vocabulary          | Complete                      | Twelve-key transposition UI, mastery/session ledger, phrase snapshots and tags                                                                                                                                         |
+| Exports and sharing              | Complete                      | MusicXML, standard MIDI, printable PDF, Web Share/clipboard links                                                                                                                                                      |
+| Security and privacy             | Complete for current scope    | Password hashing, rotating sessions, authorization, validation, rate limits, private objects, headers                                                                                                                  |
+| Quality and CI                   | Complete                      | JS/Python lint, strict types, unit/API/DSP tests, browser E2E, image builds, Compose smoke                                                                                                                             |
+| Documentation                    | Complete                      | Setup, architecture, data model, pipeline, benchmark and deployment/operator guidance                                                                                                                                  |
+| Public guest studio              | Complete                      | Account-free upload/shared-tab transcription, notation, transposition, practice, browser save, and MusicXML export at [frasi-jazz-studio.perkyaisle4.chatgpt.site](https://frasi-jazz-studio.perkyaisle4.chatgpt.site) |
+| Public cloud persistence         | Backend topology pending      | The complete API/DB/queue/storage/worker stack passes locally; managed public infrastructure and credentials are not provisioned                                                                                       |
 
 ## Verification ledger
 
@@ -34,9 +34,9 @@ accuracy of a research-grade transcription model.
 | --------------------------------------- | ------------------------------------------------------------------------------ |
 | `pnpm lint`                             | Pass                                                                           |
 | `pnpm typecheck`                        | Pass across three TypeScript workspaces                                        |
-| `pnpm test`                             | 27 tests pass (21 music-core, 6 web)                                           |
+| `pnpm test`                             | 36 tests pass (21 music-core, 15 web)                                          |
 | `pnpm build`                            | Optimized Next.js production build passes                                      |
-| `pnpm --filter @frasi/web test:e2e`     | 5 pass, 1 intentionally skipped (duplicate mobile DSP upload)                  |
+| `pnpm --filter @frasi/web test:e2e`     | 6 pass, 2 intentionally skipped (duplicate mobile DSP/capture checks)          |
 | `ruff format --check` and `ruff check`  | 62 files pass                                                                  |
 | strict `mypy`                           | 43 Python source files pass                                                    |
 | `pytest -q`                             | 22/22 API, worker, harmony, export, practice and DSP tests pass                |
@@ -60,7 +60,9 @@ accuracy of a research-grade transcription model.
 - Harmonic analysis is deterministic and score-derived; it presents suggestions and confidence,
   not ground truth.
 - YouTube and Spotify integrations intentionally do not download audio. Official API credentials
-  and audio-processing rights remain the deployer’s responsibility.
+  and audio-processing rights remain the deployer’s responsibility. Users can instead choose a
+  playing browser tab in the browser’s own share picker; capture may be unavailable when the
+  platform, browser, DRM policy, or operating system declines to expose an audio track.
 - The public guest studio performs real, bounded monophonic analysis in the browser. Its local
   autocorrelation baseline is intentionally lighter than the HPSS/pYIN worker and analyzes only
   the first 20 seconds; users should review the estimated pitches and rhythm.

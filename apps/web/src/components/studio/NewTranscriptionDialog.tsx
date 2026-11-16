@@ -1,5 +1,13 @@
-import { useRef, useState } from "react";
-import { FileAudio, Link2, Upload, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import {
+  ExternalLink,
+  FileAudio,
+  Link2,
+  Radio,
+  Square,
+  Upload,
+  X,
+} from "lucide-react";
 import { useStudioStore } from "@/store/studio";
 import { useAuthStore } from "@/store/auth";
 import {
@@ -11,6 +19,11 @@ import {
   type RecordingResponse,
 } from "@/lib/api";
 import { transcribeAudioLocally } from "@/lib/localTranscription";
+import {
+  parseStreamingReference,
+  startTabAudioCapture,
+  type TabAudioCaptureSession,
+} from "@/lib/tabAudioCapture";
 import styles from "./Studio.module.css";
 
 const ACCEPTED_TYPES = [
@@ -56,14 +69,32 @@ export function NewTranscriptionDialog({
   const [tab, setTab] = useState<"upload" | "link">("upload");
   const [link, setLink] = useState("");
   const [busy, setBusy] = useState(false);
+  const [capturing, setCapturing] = useState(false);
+  const [captureSeconds, setCaptureSeconds] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const captureRef = useRef<TabAudioCaptureSession | null>(null);
+  const captureTimerRef = useRef(0);
+  const mountedRef = useRef(true);
 
-  async function handleFile(file: File) {
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      window.clearInterval(captureTimerRef.current);
+      captureRef.current?.stop();
+    };
+  }, []);
+
+  async function handleFile(
+    file: File,
+    options: { skipValidation?: boolean; forceLocal?: boolean } = {},
+  ) {
     setError(null);
     if (
-      !ACCEPTED_EXTENSIONS.test(file.name) ||
-      (file.type && !ACCEPTED_TYPES.includes(file.type))
+      !options.skipValidation &&
+      (!ACCEPTED_EXTENSIONS.test(file.name) ||
+        (file.type && !ACCEPTED_TYPES.includes(file.type)))
     ) {
       setError("Choose a WAV, MP3, FLAC, M4A, or OGG recording.");
       return;
@@ -79,7 +110,7 @@ export function NewTranscriptionDialog({
       if (!Number.isFinite(duration) || duration <= 0)
         throw new Error("Invalid audio duration.");
       setAudio(url, file.name, duration);
-      if (!accessToken || !API_AVAILABLE) {
+      if (options.forceLocal || !accessToken || !API_AVAILABLE) {
         setJob("processing", "decoding_audio", 0.05);
         const result = await transcribeAudioLocally(file, (stage, progress) =>
           setJob("processing", stage, progress),
@@ -145,66 +176,55 @@ export function NewTranscriptionDialog({
     }
   }
 
-  async function handleLink() {
+  function openStreamingReference() {
     setError(null);
-    let parsed: URL;
-    try {
-      parsed = new URL(link);
-    } catch {
-      setError("Enter a valid YouTube or Spotify URL.");
+    const reference = parseStreamingReference(link);
+    if (!reference) {
+      setError("Enter a secure YouTube, YouTube Music, or Spotify URL.");
       return;
     }
-    const allowed = [
-      "youtube.com",
-      "www.youtube.com",
-      "youtu.be",
-      "open.spotify.com",
-    ];
-    if (!allowed.includes(parsed.hostname)) {
-      setError("Only official YouTube and Spotify links are supported.");
-      return;
-    }
-    if (!API_AVAILABLE) {
-      setError(
-        "Streaming references need the cloud service. Audio-file transcription works here without an account.",
-      );
-      return;
-    }
-    if (!accessToken) {
-      setError(
-        "Upload an audio file for guest transcription, or sign in on a connected deployment to save this reference.",
-      );
+    window.open(reference.url, "_blank", "noopener,noreferrer");
+  }
+
+  async function captureStreamingReference() {
+    setError(null);
+    const reference = parseStreamingReference(link);
+    if (!reference) {
+      setError("Enter a secure YouTube, YouTube Music, or Spotify URL.");
       return;
     }
     setBusy(true);
     try {
-      const provider =
-        parsed.hostname === "open.spotify.com" ? "spotify" : "youtube";
-      const recording = await apiFetch<RecordingResponse>(
-        "/api/v1/recordings/external",
-        {
-          method: "POST",
-          body: JSON.stringify({ provider, url: link }),
-        },
+      const session = await startTabAudioCapture(
+        `${reference.provider}-tab-capture.webm`,
+        20_000,
       );
-      setRecording(
-        recording.id,
-        recording.source_kind,
-        recording.title,
-        recording.artist,
+      captureRef.current = session;
+      setCapturing(true);
+      setCaptureSeconds(0);
+      setBusy(false);
+      captureTimerRef.current = window.setInterval(
+        () => setCaptureSeconds((seconds) => Math.min(20, seconds + 1)),
+        1_000,
       );
-      setTab("upload");
-      onNotify(
-        "Official metadata linked — now attach audio you are authorized to analyze",
-      );
+      const file = await session.result;
+      window.clearInterval(captureTimerRef.current);
+      captureRef.current = null;
+      if (!mountedRef.current) return;
+      setCapturing(false);
+      await handleFile(file, { skipValidation: true, forceLocal: true });
     } catch (cause) {
+      window.clearInterval(captureTimerRef.current);
+      captureRef.current = null;
+      if (!mountedRef.current) return;
+      setCapturing(false);
       setError(
-        cause instanceof ApiError
+        cause instanceof Error
           ? cause.message
-          : "Unable to add this reference.",
+          : "Unable to capture audio from that tab.",
       );
     } finally {
-      setBusy(false);
+      if (mountedRef.current) setBusy(false);
     }
   }
 
@@ -233,8 +253,8 @@ export function NewTranscriptionDialog({
         <h2 id="new-transcription-title">Bring in a recording</h2>
         <p className={styles.dialogIntro}>
           No account is required. Upload authorized audio for a real local
-          monophonic transcription, or associate an official streaming link when
-          cloud services are connected.
+          monophonic transcription, or capture authorized playback from a
+          YouTube or Spotify browser tab.
         </p>
         <div
           className={styles.dialogTabs}
@@ -297,7 +317,7 @@ export function NewTranscriptionDialog({
           </>
         ) : (
           <div className={styles.linkForm}>
-            <label htmlFor="recording-link">Official track URL</label>
+            <label htmlFor="recording-link">YouTube or Spotify URL</label>
             <div>
               <input
                 id="recording-link"
@@ -307,16 +327,50 @@ export function NewTranscriptionDialog({
                 type="url"
               />
               <button
-                onClick={() => void handleLink()}
-                disabled={busy}
+                onClick={openStreamingReference}
+                disabled={busy || capturing}
                 type="button"
               >
-                {busy ? "Checking…" : "Add link"}
+                <ExternalLink size={15} /> Open track
               </button>
             </div>
-            <small>
-              Frasi never rips protected audio. Upload a recording you are
-              authorized to analyze.
+            <div className={styles.captureSteps}>
+              <span>
+                <b>1</b>
+                <span>Open the track and start playback.</span>
+              </span>
+              <span>
+                <b>2</b>
+                <span>
+                  Return here, start capture, select that browser tab, and
+                  enable <em>Share tab audio</em>.
+                </span>
+              </span>
+            </div>
+            <button
+              className={
+                capturing ? styles.captureButtonActive : styles.captureButton
+              }
+              onClick={() => {
+                if (capturing) captureRef.current?.stop();
+                else void captureStreamingReference();
+              }}
+              disabled={busy}
+              type="button"
+            >
+              {capturing ? (
+                <Square size={15} fill="currentColor" />
+              ) : (
+                <Radio size={17} />
+              )}
+              {capturing
+                ? `Stop & transcribe · ${captureSeconds}s / 20s`
+                : "Capture 20 seconds from playing tab"}
+            </button>
+            <small className={styles.captureNotice}>
+              Browser-mediated, real-time capture only. Audio stays in memory
+              and is analyzed locally; protected playback may decline capture.
+              Use only audio you are authorized to transcribe.
             </small>
           </div>
         )}
