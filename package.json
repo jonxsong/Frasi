@@ -10,7 +10,8 @@
   },
   "scripts": {
     "dev": "pnpm --filter @frasi/web dev",
-    "build": "pnpm -r --if-present build",
+    "build": "node infrastructure/scripts/build_site.mjs",
+    "build:containers": "pnpm --filter @frasi/web build",
     "lint": "pnpm -r --if-present lint",
     "typecheck": "pnpm -r --if-present typecheck",
     "test": "pnpm -r --if-present test",
