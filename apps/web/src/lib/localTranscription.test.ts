@@ -2,6 +2,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildLocalMusicXml,
+  correctOctaveErrors,
   detectPitch,
   estimateTempo,
   estimateTempoFromCandidates,
@@ -120,6 +121,30 @@ describe("guest transcription DSP", () => {
     );
 
     expect(notes.map((note) => note.midi)).toEqual([82, 84]);
+  });
+
+  it("does not pull a coherent phrase into a higher octave", () => {
+    const notes: LocalNoteEvent[] = [60, 62, 64].map((midi, index) => ({
+      midi,
+      onsetSeconds: index * 0.5,
+      offsetSeconds: index * 0.5 + 0.4,
+      confidence: 0.9,
+    }));
+    expect(
+      correctOctaveErrors(notes, 44, 113).map((note) => note.midi),
+    ).toEqual([60, 62, 64]);
+  });
+
+  it("corrects only an isolated octave spike between nearby notes", () => {
+    const notes: LocalNoteEvent[] = [60, 72, 62].map((midi, index) => ({
+      midi,
+      onsetSeconds: index * 0.25,
+      offsetSeconds: index * 0.25 + 0.2,
+      confidence: 0.9,
+    }));
+    expect(
+      correctOctaveErrors(notes, 44, 113).map((note) => note.midi),
+    ).toEqual([60, 60, 62]);
   });
 
   it("engraves beamed triplets with visible 3:2 notation", () => {

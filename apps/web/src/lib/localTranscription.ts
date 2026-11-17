@@ -132,6 +132,23 @@ export function detectPitch(
   }
   if (bestCorrelation < 0.58 || !bestLag) return null;
 
+  // Autocorrelation has equally strong peaks at integer multiples of a
+  // period. Prefer the earliest near-maximum local peak so a clean tone is
+  // not mistaken for a subharmonic one or two octaves below its fundamental.
+  const nearMaximum = Math.max(0.58, bestCorrelation * 0.985);
+  for (let lag = minLag + 1; lag < bestLag; lag += 1) {
+    const current = correlations[lag] ?? 0;
+    if (
+      current >= nearMaximum &&
+      current >= (correlations[lag - 1] ?? 0) &&
+      current >= (correlations[lag + 1] ?? 0)
+    ) {
+      bestLag = lag;
+      bestCorrelation = current;
+      break;
+    }
+  }
+
   const before = correlations[bestLag - 1] ?? bestCorrelation;
   const after = correlations[bestLag + 1] ?? bestCorrelation;
   const denominator = before - 2 * bestCorrelation + after;
@@ -272,69 +289,40 @@ function removeMelodicOutliers(notes: LocalNoteEvent[]): LocalNoteEvent[] {
   });
 }
 
-function correctOctaveErrors(
+export function correctOctaveErrors(
   notes: LocalNoteEvent[],
   minimumMidi: number,
   maximumMidi: number,
 ): LocalNoteEvent[] {
-  if (notes.length < 2) return notes;
-  const candidates = notes.map((note) =>
-    [note.midi, note.midi - 12, note.midi + 12]
-      .filter(
-        (midi, index, values) =>
-          midi >= minimumMidi &&
-          midi <= maximumMidi &&
-          values.indexOf(midi) === index,
-      )
-      .map((midi) => ({
-        midi,
-        shiftCost: midi === note.midi ? 0 : 0.58,
-      })),
-  );
-  const costs: number[][] = [];
-  const previous: number[][] = [];
-  candidates.forEach((choices, noteIndex) => {
-    costs[noteIndex] = [];
-    previous[noteIndex] = [];
-    choices.forEach((choice, choiceIndex) => {
-      if (noteIndex === 0) {
-        costs[noteIndex]![choiceIndex] = choice.shiftCost;
-        previous[noteIndex]![choiceIndex] = -1;
-        return;
-      }
-      let bestCost = Number.POSITIVE_INFINITY;
-      let bestPrevious = 0;
-      (candidates[noteIndex - 1] ?? []).forEach(
-        (previousChoice, previousIndex) => {
-          const leap = Math.abs(choice.midi - previousChoice.midi);
-          const transitionCost = leap * 0.035 + Math.max(0, leap - 7) * 0.22;
-          const cost =
-            (costs[noteIndex - 1]?.[previousIndex] ?? 0) +
-            choice.shiftCost +
-            transitionCost;
-          if (cost < bestCost) {
-            bestCost = cost;
-            bestPrevious = previousIndex;
-          }
-        },
-      );
-      costs[noteIndex]![choiceIndex] = bestCost;
-      previous[noteIndex]![choiceIndex] = bestPrevious;
-    });
+  if (notes.length < 3) return notes;
+  return notes.map((note, index) => {
+    const previous = notes[index - 1];
+    const next = notes[index + 1];
+    if (!previous || !next) return note;
+    const duration = note.offsetSeconds - note.onsetSeconds;
+    if (
+      duration > 0.7 ||
+      Math.abs(previous.midi - next.midi) > 5 ||
+      Math.abs(note.midi - previous.midi) < 9 ||
+      Math.abs(note.midi - next.midi) < 9
+    ) {
+      return note;
+    }
+    const target = (previous.midi + next.midi) / 2;
+    const candidates = [note.midi - 12, note.midi + 12].filter(
+      (midi) => midi >= minimumMidi && midi <= maximumMidi,
+    );
+    const best = candidates.reduce(
+      (candidate, midi) =>
+        Math.abs(midi - target) < Math.abs(candidate - target)
+          ? midi
+          : candidate,
+      note.midi,
+    );
+    return Math.abs(note.midi - target) - Math.abs(best - target) >= 7
+      ? { ...note, midi: best }
+      : note;
   });
-  let selected = (costs.at(-1) ?? []).reduce(
-    (best, cost, index, values) =>
-      cost < (values[best] ?? Number.POSITIVE_INFINITY) ? index : best,
-    0,
-  );
-  const corrected = [...notes];
-  for (let index = notes.length - 1; index >= 0; index -= 1) {
-    const choice = candidates[index]?.[selected];
-    const note = corrected[index];
-    if (choice && note) corrected[index] = { ...note, midi: choice.midi };
-    selected = previous[index]?.[selected] ?? 0;
-  }
-  return corrected;
 }
 
 /** Select one coherent, instrument-aware lead line from polyphonic candidates. */
@@ -896,9 +884,8 @@ export async function transcribeAudioLocally(
     onProgress("tracking_pitch", 0.15 + progress * 0.65),
   );
   onProgress("extracting_lead_line", 0.82);
-  const notes = selectMelodicLine(candidates, {
-    instrumentId: selection.instrumentId ?? "tenor_saxophone",
-  });
+  const instrumentId = selection.instrumentId ?? "tenor_saxophone";
+  const notes = selectMelodicLine(candidates, { instrumentId });
   if (!notes.length)
     throw new Error(
       "No stable lead line was detected in that selection. Choose a clearer solo passage or a more isolated recording.",

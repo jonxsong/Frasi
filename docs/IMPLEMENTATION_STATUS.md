@@ -14,7 +14,7 @@ accuracy of a research-grade transcription model.
 | Original brand and design system | Complete                      | Original Frasi emblem, minimal startup-style responsive studio, app/README/icon integration                                                                                                                                                                   |
 | Interactive music studio         | Complete                      | Waveform, selection handles, A–B, seeking, speed, volume, keyboard-accessible controls                                                                                                                                                                        |
 | Notation and correction          | Complete                      | Verovio rendering, 40–160% zoom, fit-to-view, drag/keyboard resize, zoom-stable ledger lines, rhythmic beams, ties, context-valid triplets, jazz-standard harmony glyphs, click-to-seek, corrections and immutable revisions                                  |
-| Music theory engine              | Complete                      | Concert-pitch canonical model, automatic tenor B♭ written pitch, hard low-B♭ floor with altissimo preserved, chromatic practice projections                                                                                                                   |
+| Music theory engine              | Complete                      | Concert-pitch canonical model, register-optimized tenor B♭ notation, hard low-B♭ floor with genuine altissimo preserved, chromatic practice projections                                                                                                       |
 | Backend infrastructure           | Complete                      | FastAPI, PostgreSQL, Alembic, Redis/Celery, RustFS/S3, readiness/liveness, containers                                                                                                                                                                         |
 | Transcription baseline           | Complete with declared scope  | Real HPSS/onset/pYIN pipeline plus browser Basic Pitch, instrument-aware lead extraction, accompaniment rejection, and permanent Hey Lock 1:23–1:43 quality gates                                                                                             |
 | Rhythm intelligence              | Complete with declared scope  | Onset-derived tempo; straight, dotted, tied/measure-aware and context-valid tuplet timing; performance time preserved                                                                                                                                         |
@@ -30,22 +30,22 @@ accuracy of a research-grade transcription model.
 
 ## Verification ledger
 
-| Check                                    | Result observed 2026-11-16                                                      |
-| ---------------------------------------- | ------------------------------------------------------------------------------- |
-| `pnpm lint`                              | Pass                                                                            |
-| `pnpm typecheck`                         | Pass across three TypeScript workspaces                                         |
-| `pnpm test`                              | 44 tests pass (22 music-core, 22 web)                                           |
-| `pnpm build`                             | Optimized Next.js production build passes                                       |
-| `pnpm --filter @frasi/web test:e2e`      | 8 pass, 4 intentionally skipped (duplicate mobile ML/capture/resize checks)     |
-| `pnpm --filter @frasi/web test:baseline` | Hey Lock 1:23–1:43 passes: 86 BPM, B♭ part, 69 pitched elements, 0 range errors |
-| `ruff format --check` and `ruff check`   | 62 files pass                                                                   |
-| strict `mypy`                            | 44 Python source files pass                                                     |
-| `pytest -q`                              | 26/26 API, worker, harmony, export, practice and DSP tests pass                 |
-| synthetic transcription benchmark        | 16/16 expected events matched; precision 0.5926, recall 1.0000                  |
-| `docker compose config --quiet`          | Pass                                                                            |
-| API/worker/web image builds              | Pass on Python 3.12 and Node 22 production images                               |
-| full-stack health                        | PostgreSQL, Redis, RustFS, API, worker and web healthy together                 |
-| `infrastructure/scripts/smoke_test.ps1`  | Auth → encrypted upload → job → 8 notes → immutable revision → MusicXML passes  |
+| Check                                    | Result observed 2026-11-16                                                     |
+| ---------------------------------------- | ------------------------------------------------------------------------------ |
+| `pnpm lint`                              | Pass                                                                           |
+| `pnpm typecheck`                         | Pass across three TypeScript workspaces                                        |
+| `pnpm test`                              | 48 tests pass (22 music-core, 26 web)                                          |
+| `pnpm build`                             | Optimized Next.js production build passes                                      |
+| `pnpm --filter @frasi/web test:e2e`      | 8 pass, 4 intentionally skipped (duplicate mobile ML/capture/resize checks)    |
+| `pnpm --filter @frasi/web test:baseline` | Hey Lock 1:23–1:43 passes: 86 BPM, B♭3–F5, 69 pitched elements, 0 range errors |
+| `ruff format --check` and `ruff check`   | 62 files pass                                                                  |
+| strict `mypy`                            | 44 Python source files pass                                                    |
+| `pytest -q`                              | 26/26 API, worker, harmony, export, practice and DSP tests pass                |
+| synthetic transcription benchmark        | 16/16 expected events matched; precision 0.5926, recall 1.0000                 |
+| `docker compose config --quiet`          | Pass                                                                           |
+| API/worker/web image builds              | Pass on Python 3.12 and Node 22 production images                              |
+| full-stack health                        | PostgreSQL, Redis, RustFS, API, worker and web healthy together                |
+| `infrastructure/scripts/smoke_test.ps1`  | Auth → encrypted upload → job → 8 notes → immutable revision → MusicXML passes |
 
 ## Scope and known limitations
 
@@ -68,7 +68,7 @@ accuracy of a research-grade transcription model.
 - The public guest studio runs Spotify Basic Pitch locally, rejects pitches below the target
   instrument's hard lower floor while preserving tenor altissimo, then uses continuity and
   register priors to extract the lead line. It quantizes the result into beamed, tuplet-aware
-  notation and produces a B♭ written tenor part. It
+  notation and produces a register-optimized B♭ tenor part. It
   analyzes the user's explicit selection in 30-second model windows, up to ten minutes per pass.
   Dense ensemble mixes and weakly isolated solos still require review and correction.
 - Cloud accounts, cross-device persistence, full worker transcription, and server-side exports

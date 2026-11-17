@@ -19,9 +19,9 @@
     "tripletGroups": 0,
     "beamElements": 72,
     "tieElements": 10,
-    "lowestWrittenMidi": 68,
-    "highestWrittenMidi": 89,
+    "lowestWrittenMidi": 58,
+    "highestWrittenMidi": 77,
     "partName": "Tenor Saxophone in B♭",
-    "symbolicSha256": "b6f7fd83d7e961089cd7b35472c378b6df8e9006f3eb007647aa2e67e776796d"
+    "symbolicSha256": "632c77305c84bbad243476183aae3ee2821bc1b54d0f688d866d028e2980d839"
   }
 }

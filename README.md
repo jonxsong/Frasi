@@ -21,9 +21,10 @@ and Frasi will transcribe that region directly in your browser.
 </div>
 
 Frasi keeps an editable concert-pitch score as its source of truth while presenting tenor
-saxophone music automatically as a correctly transposed B♭ written part. The browser combines
-a waveform, A–B looping, variable-speed playback, Verovio notation, harmonic guidance,
-vocabulary capture, and practice history in one responsive workspace.
+saxophone music as a register-optimized B♭ part. Conventional phrases stay in a practical
+staff register while genuinely detected altissimo remains high. The browser combines a waveform,
+A–B looping, variable-speed playback, Verovio notation, harmonic guidance, vocabulary capture,
+and practice history in one responsive workspace.
 
 The repository contains working software rather than a UI-only prototype. A FastAPI service,
 PostgreSQL schema, encrypted S3-compatible storage, Redis/Celery worker, DSP transcription
@@ -53,8 +54,8 @@ Compose.
   explicit browser share picker, user-controlled stop, and honest protected-content errors.
 - Immutable score correction with optimistic concurrency, note/chord validation, and complete
   revision history.
-- Canonical concert-pitch representation with automatic tenor B♭ written pitch, hard low-B♭
-  enforcement without suppressing altissimo, and derived instrument/practice-key views.
+- Canonical concert-pitch representation with register-optimized tenor B♭ notation, hard
+  low-B♭ enforcement without suppressing genuine altissimo, and instrument/practice-key views.
 - Deterministic key/mode, chord, Roman-numeral, ii–V–I, and scale-choice analysis with explicit
   confidence and caveats.
 - Jazz-standard chord engraving (`△`, `−`, `ø`, `°`) with semantic MusicXML harmony kinds,

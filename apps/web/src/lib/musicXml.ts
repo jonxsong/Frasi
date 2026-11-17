@@ -177,6 +177,40 @@ function destinationKeyForOffset(source: string, semitones: number): string {
   return (preferFlats ? FLATS : SHARPS)[destinationPitchClass] ?? "C";
 }
 
+function pitchElementMidi(pitch: Element): number {
+  const step = text(pitch, "step") ?? "C";
+  const alter = Number(text(pitch, "alter") ?? 0);
+  const octave = Number(text(pitch, "octave") ?? 4);
+  return (octave + 1) * 12 + (NATURAL[step] ?? 0) + alter;
+}
+
+/**
+ * Keep an otherwise conventional high tenor phrase in a readable staff
+ * register. Canonical concert pitch stays untouched, and actual altissimo
+ * notes remain in their detected octave.
+ */
+function normalizeTenorWrittenRegister(document: Document): void {
+  const instrument = instruments.tenor_saxophone;
+  const pitches = Array.from(document.querySelectorAll("note > pitch"));
+  if (pitches.length < 3) return;
+  const midi = pitches.map(pitchElementMidi);
+  const sorted = [...midi].sort((left, right) => left - right);
+  const median = sorted[Math.floor(sorted.length / 2)] ?? 0;
+  const upperRegisterThreshold = instrument.standardHighestWrittenMidi - 14;
+  const octaveDownPlayableShare =
+    midi.filter((value) => value - 12 >= instrument.lowestWrittenMidi).length /
+    midi.length;
+  if (median < upperRegisterThreshold || octaveDownPlayableShare < 0.8) return;
+
+  pitches.forEach((pitch, index) => {
+    const original = midi[index] ?? 0;
+    if (original > instrument.standardHighestWrittenMidi) return;
+    if (original - 12 < instrument.lowestWrittenMidi) return;
+    const octave = Number(text(pitch, "octave") ?? 4);
+    setText(pitch, "octave", String(octave - 1));
+  });
+}
+
 export function toWrittenPartMusicXml(
   source: string,
   instrumentId: InstrumentId,
@@ -198,6 +232,9 @@ export function toWrittenPartMusicXml(
       instrumentId === "tenor_saxophone"
         ? "Tenor Saxophone in B♭"
         : instrument.name;
+  }
+  if (instrumentId === "tenor_saxophone") {
+    normalizeTenorWrittenRegister(document);
   }
   if (keyIsUnanalysed) {
     document.querySelectorAll("key > fifths").forEach((fifths) => {

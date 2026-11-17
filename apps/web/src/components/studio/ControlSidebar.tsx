@@ -45,7 +45,9 @@ export function ControlSidebar() {
           <strong>Tenor Saxophone</strong>
           <span>B♭</span>
         </div>
-        <small>Automatically written a major ninth above concert pitch</small>
+        <small>
+          B♭ pitch in a practical staff register; genuine altissimo stays high
+        </small>
       </section>
       <section className={styles.speedRow}>
         <span>Playback</span>

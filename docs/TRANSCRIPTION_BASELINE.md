@@ -22,6 +22,8 @@ current quality gates require:
 
 - an 86 BPM browser estimate (the independent backend beat tracker reports about 89 BPM);
 - a `Tenor Saxophone in B♭` MusicXML part;
+- an observed written range of B♭3–F5 for this passage, rather than an upper-register-only
+  rendering;
 - every written note at or above the tenor's hard lower floor, B♭3 (MIDI 58), while
   preserving valid altissimo above the conventional F♯6 ceiling;
 - zero accompaniment notes below the corresponding concert range;
@@ -31,7 +33,7 @@ The Playwright result also attaches the exported MusicXML and a full-page score 
 
 The committed expectation is a regression and playability baseline, not a claim of
 human-verified note-for-note accuracy. It catches the concrete failures that motivated it:
-bass/accompaniment leakage, impossible tenor notes, concert-versus-written-pitch confusion,
-unstable tempo, and rhythm-engraving regressions. Any transcription-engine change must be
-compared against this same window; update the snapshot only after reviewing the score and
-listening against the phrase.
+bass/accompaniment leakage, impossible tenor notes, upper-register-only tenor rendering,
+concert-versus-written-pitch confusion, unstable tempo, and rhythm-engraving regressions. Any
+transcription-engine change must be compared against this same window; update the snapshot only
+after reviewing the score and listening against the phrase.

@@ -30,7 +30,7 @@ describe("MusicXML display transposition", () => {
     expect(transposeMusicXml(xml, 0, "C")).toBe(xml);
   });
 
-  it("writes a tenor B-flat part a major ninth above concert pitch", () => {
+  it("writes the tenor low B-flat at the correct sounding octave", () => {
     const concertAb = `<?xml version="1.0"?><score-partwise><part-list><score-part id="P1"><part-name>Concert Pitch</part-name></score-part></part-list><part id="P1"><measure><attributes><key><fifths>-4</fifths></key></attributes><note><pitch><step>A</step><alter>-1</alter><octave>2</octave></pitch></note></measure></part></score-partwise>`;
     const result = toWrittenPartMusicXml(concertAb, "tenor_saxophone");
     expect(result).toContain("<part-name>Tenor Saxophone in B♭</part-name>");
@@ -38,5 +38,23 @@ describe("MusicXML display transposition", () => {
       "<step>B</step><alter>-1</alter><octave>3</octave>",
     );
     expect(result).toContain("<fifths>-2</fifths>");
+  });
+
+  it("places a high conventional tenor phrase in a readable register", () => {
+    const highPhrase = `<?xml version="1.0"?><score-partwise><part-list><score-part id="P1"><part-name>Concert Pitch</part-name></score-part></part-list><part id="P1"><measure><note><pitch><step>C</step><octave>4</octave></pitch></note><note><pitch><step>D</step><octave>4</octave></pitch></note><note><pitch><step>E</step><octave>4</octave></pitch></note></measure></part></score-partwise>`;
+    const result = toWrittenPartMusicXml(highPhrase, "tenor_saxophone");
+    expect(result).toContain("<step>D</step><octave>4</octave>");
+    expect(result).toContain("<step>E</step><octave>4</octave>");
+    expect(result).toContain(
+      "<step>F</step><alter>1</alter><octave>4</octave>",
+    );
+  });
+
+  it("preserves notes genuinely above the conventional tenor range", () => {
+    const altissimoPhrase = `<?xml version="1.0"?><score-partwise><part-list><score-part id="P1"><part-name>Concert Pitch</part-name></score-part></part-list><part id="P1"><measure><note><pitch><step>F</step><octave>5</octave></pitch></note><note><pitch><step>G</step><octave>5</octave></pitch></note><note><pitch><step>A</step><octave>5</octave></pitch></note></measure></part></score-partwise>`;
+    const result = toWrittenPartMusicXml(altissimoPhrase, "tenor_saxophone");
+    expect(result).toContain("<step>G</step><octave>6</octave>");
+    expect(result).toContain("<step>A</step><octave>6</octave>");
+    expect(result).toContain("<step>B</step><octave>6</octave>");
   });
 });
